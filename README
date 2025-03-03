@@ -9,3 +9,6 @@ widget.  TkHtml renders HTML for Tcl/Tk 8.0 and later.
 
    tools           Source code to tools that are used to build the widget
                    but which do not become part of the widget.
+
+
+Advise on compiling: Use the compile option "Modifying a Makefile template" on Windows for a smaller binary file.
