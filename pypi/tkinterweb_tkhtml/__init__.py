@@ -64,6 +64,7 @@ def load_tkhtml(master, location=None, force=False):
     global tkhtml_loaded
     if (not tkhtml_loaded) or force:
         if location:
-            master.tk.eval("set auto_path [linsert $auto_path 0 {" + location + "}]")
+            ap = master.tk.eval("set auto_path [linsert $auto_path 0 {" + location + "}]")
         master.tk.eval("package require Tkhtml")
         tkhtml_loaded = True
+        return ap
