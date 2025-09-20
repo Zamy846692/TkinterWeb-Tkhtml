@@ -144,7 +144,7 @@ snit::type ::hv3::config {
 
   foreach {opt def type} [list \
     -enableimages     1                         Boolean \
-    -enablejavascript 0                         Boolean \
+    -enablejavascript 1                         Boolean \
     -forcefontmetrics 1                         Boolean \
     -hidegui          0                         Boolean \
     -zoom             1.0                       Double  \

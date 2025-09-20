@@ -221,9 +221,7 @@ runEvent(interp, pTarget, pEvent, zType, isCapture)
     if (!isCapture) {
         struct SEE_value val;
         struct SEE_string *e = SEE_string_new(interp, 128);
-        struct SEE_object *pLookup = (pTclObject ?
-            ((struct SEE_object *)pTclObject->pNative) : pTarget
-        );
+        struct SEE_object *pLookup = (pTclObject ? ((struct SEE_object *)pTclObject->pNative) : pTarget);
 
         SEE_string_append_ascii(e, "on");
         SEE_string_append(e, zType);
@@ -753,7 +751,7 @@ eventTargetInit(pTclSeeInterp, p)
     struct SEE_scope *pScope = 0;
 
     int rc;
-    rc = callSeeTclMethod(pTcl, 0, p, "Events", 0, 0);
+    rc = callSeeTclMethod(pTcl, NULL, p, "Events", NULL, NULL);
     if (rc != TCL_OK) {
         Tcl_BackgroundError(pTcl);
         return;
@@ -772,7 +770,7 @@ eventTargetInit(pTclSeeInterp, p)
         Tcl_Obj **apS;
         Tcl_Obj *pScopeList;
 
-        rc = callSeeTclMethod(pTcl, 0, p, "Scope", 0, 0);
+        rc = callSeeTclMethod(pTcl, NULL, p, "Scope", NULL, NULL);
         if (rc != TCL_OK) {
             Tcl_BackgroundError(pTcl);
             return;
@@ -819,7 +817,7 @@ eventTargetInit(pTclSeeInterp, p)
         Tcl_AppendToObj(pJ, " = function (event) { ", -1);
         Tcl_AppendToObj(pJ, zScript, -1);
         Tcl_AppendToObj(pJ, " } ", -1);
-        /* printf("%s\n", Tcl_GetString(pJ)); */
+        printf("%s\n", Tcl_GetString(pJ));
 
         pInputCode = SEE_input_utf8(&pTclSeeInterp->interp, Tcl_GetString(pJ));
 

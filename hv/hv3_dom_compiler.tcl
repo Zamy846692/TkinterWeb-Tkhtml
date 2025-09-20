@@ -131,7 +131,7 @@ namespace eval ::hv3::dom2 {
   set CurrentType ""
 
   proc evalcode {code} {
-    #puts $code
+    puts $code
     eval $code
   }
 

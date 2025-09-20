@@ -724,11 +724,10 @@ static int evalObjv(pTcl, nWord, apWord)
     int nWord;
     Tcl_Obj **apWord;
 {
-#if 0
-    int ii;
-    for (ii = 0; ii < nWord; ii++){
-         printf("%s ", Tcl_GetString(apWord[ii]));
-    }
+#if 1
+    int i;
+    printf("%d. ", nWord);
+    for (int i=0; i<nWord;) printf("%d: %s. ", i++, Tcl_GetString(apWord[i]));
     printf("\n");
 #endif
     return Tcl_EvalObjv(pTcl, nWord, apWord, TCL_EVAL_GLOBAL);
@@ -900,7 +899,7 @@ finalizeObject(pPtr, pContext)
     if (pContext) {
         /* Execute the Tcl Finalize hook. Do nothing with the result thereof. */
         Tcl_Interp *pTclInterp = (Tcl_Interp *)pContext;
-        int rc = callSeeTclMethod(pTclInterp, 0, p, "Finalize", 0, 0);
+        int rc = callSeeTclMethod(pTclInterp, NULL, p, "Finalize", NULL, NULL);
         if (rc != TCL_OK) {
             printf("WARNING Seetcl: Finalize script failed for %s: %s\n", 
                 Tcl_GetString(p->pObj), Tcl_GetStringResult(pTclInterp)
@@ -1277,8 +1276,7 @@ objToValue(pInterp, pObj, pValue, pIsCacheable)
                 }
 
                 case SEE_OBJECT: {
-                    struct SEE_object *pObject = 
-                        findOrCreateObject(pInterp, apElem[1], 0);
+                    struct SEE_object *pObject = findOrCreateObject(pInterp, apElem[1], 0);
                     SEE_SET_OBJECT(pValue, pObject);
                     break;
                 }
@@ -1290,8 +1288,7 @@ objToValue(pInterp, pObj, pValue, pIsCacheable)
                 }
 
                 case TRANSIENT: {
-                    struct SEE_object *pObject = 
-                        createTransient(pInterp, apElem[1]);
+                    struct SEE_object *pObject = createTransient(pInterp, apElem[1]);
                     SEE_SET_OBJECT(pValue, pObject);
                     break;
                 }
@@ -2299,7 +2296,7 @@ SeeTcl_HasProperty(pInterp, pObj, pProp)
         !p->pClass || Tcl_FindHashEntry(&p->pClass->aProperty, (char *)pProp)
     )) {
         Tcl_Interp *pTcl = pTclSeeInterp->pTclInterp;
-        rc = callSeeTclMethod(pTcl, 0, p, "HasProperty", pProp, 0);
+        rc = callSeeTclMethod(pTcl, 0, p, "HasProperty", pProp, NULL);
         throwTclError(pInterp, rc);
         rc = Tcl_GetBooleanFromObj(pTcl, Tcl_GetObjResult(pTcl), &ret);
         throwTclError(pInterp, rc);

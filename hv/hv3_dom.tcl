@@ -109,9 +109,7 @@ snit::type ::hv3::dom {
     foreach A {onload onunload} {
       catch {
         set V [$body attr $A]
-        append script [subst {
-          if (!window.$A) { window.$A = function(event) {$V} }
-        }]
+        append script [subst {if (!window.$A) {window.$A = function(event) {$V}}}]
       }
     }
     $mySee eval -window [$self node_to_window $body] -noresult $script
