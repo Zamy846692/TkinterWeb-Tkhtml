@@ -5,7 +5,7 @@ This script will generate a universal wheel, a universal sdist, and platform-spe
 It's a pretty messy solution but makes it possible to only bundle only the tkhtml binary needed in each platform-specific wheel
 This avoids the need to have a seperate copy of the repository for each platform
 
-Copyright (c) 2025 Andereoo
+Copyright (c) 2025 Andrew Clarke
 """
 
 import os, shutil, sys
