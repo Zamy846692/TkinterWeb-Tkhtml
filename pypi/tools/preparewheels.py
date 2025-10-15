@@ -39,7 +39,7 @@ README = (HERE / "README.md").read_text()
 
 setup(
     name="tkinterweb-tkhtml",
-    version="1.1.4",
+    version="2.0.0",
     python_requires=">=3.2",
     description="HTML/CSS viewer for Tkinter",
     long_description=README,
@@ -137,8 +137,7 @@ def copyfolder(src, dst, keep, ignore):
             if file == TKINTERWEB_UTILITIES_FILE_NAME:
                 with open(os.path.join(path, file), "r") as handle:
                     content = handle.read()
-                    content = re.sub(r"# Begin universal sdist((.|\n)*?)# End universal sdist", "", content, re.MULTILINE) # Remove code for universal sdist
-                    # re.sub(r"# Platform-specific wheel((.|\n)*?)\n\n", "", s, re.MULTILINE) # Remove code for platform-specific wheels
+                    content = re.sub(r"# --- Begin universal sdist((.|\n)*?)# --- End universal sdist.*", "", content, re.MULTILINE) # Remove code for universal sdist
                 with open(os.path.join(new_folder, file), "w+") as handle:
                     handle.write(content)
             else:
