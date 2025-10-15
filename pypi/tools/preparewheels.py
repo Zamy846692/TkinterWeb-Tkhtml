@@ -137,7 +137,7 @@ def copyfolder(src, dst, keep, ignore):
             if file == TKINTERWEB_UTILITIES_FILE_NAME:
                 with open(os.path.join(path, file), "r") as handle:
                     content = handle.read()
-                    content = re.sub(r"# --- Begin universal sdist((.|\n)*?)# --- End universal sdist.*", "", content, re.MULTILINE) # Remove code for universal sdist
+                    content = re.sub(r"\n\n# --- Begin universal sdist((.|\n)*?)# --- End universal sdist.*", "", content, re.MULTILINE) # Remove code for universal sdist
                 with open(os.path.join(new_folder, file), "w+") as handle:
                     handle.write(content)
             else:

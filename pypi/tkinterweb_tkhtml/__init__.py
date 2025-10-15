@@ -36,10 +36,9 @@ import platform
 PLATFORM = platform.uname()
 # --- End universal sdist -----------------------------------------------------
 
-
 TKHTML_ROOT_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "tkhtml")
 
-# --- End universal sdist -----------------------------------------------------
+# --- Begin universal sdist -----------------------------------------------------
 if PLATFORM.system == "Linux":
     if "arm" in PLATFORM.machine: # 32 bit arm Linux - Raspberry Pi and others
         TKHTML_ROOT_DIR = os.path.join(TKHTML_ROOT_DIR, "linux_armv71")
@@ -73,6 +72,7 @@ else:
 Copy the binary into {TKHTML_ROOT_DIR}, adding 'exp' after the filename (eg. 'libTkhtml3.1exp.dll')"
 
 HELP_MESSAGE = f"Download https://github.com/Andereoo/TkinterWeb-Tkhtml/tree/3.1-TclTk9 and run 'python compile.py --install' to compile and install Tkhtml. If you think this is a bug, consider filing a bug report."
+
 
 def get_tkhtml_file(version=None, index=-1, experimental=False):
     "Get the location of the platform's Tkhtml binary"
