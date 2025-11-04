@@ -37,6 +37,7 @@ PLATFORM = platform.uname()
 # --- End universal sdist -----------------------------------------------------
 
 TKHTML_ROOT_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "tkhtml")
+EXP = "g"
 
 # --- Begin universal sdist -----------------------------------------------------
 if PLATFORM.system == "Linux":
@@ -97,7 +98,7 @@ def get_tkhtml_file(version=None, index=-1, experimental=False):
         for loc, file in TKHTML_BINARIES:
             if version in file:
                 # Note: experimental can be "auto"
-                if "exp" in file:
+                if EXP in file:
                     if not experimental:
                         raise OSError(f"Tkhtml version {version} is an experimental release but experimental mode is disabled. {HELP_MESSAGE_EXP}")
                     experimental = True
@@ -110,19 +111,19 @@ def get_tkhtml_file(version=None, index=-1, experimental=False):
     else:
         # Get highest numbered avaliable file if a version is not provided
         if experimental == True:
-            files = [k for k in TKHTML_BINARIES if 'exp' in k]
+            files = [k for k in TKHTML_BINARIES if EXP in k]
             if not files:
                 raise OSError(f"No experimental Tkhtml versions could be found on your system. {HELP_MESSAGE_EXP}")
         elif not experimental:
-            files = [k for k in TKHTML_BINARIES if 'exp' not in k]
+            files = [k for k in TKHTML_BINARIES if EXP not in k]
         else:
             files = TKHTML_BINARIES
         loc, file = sorted(files)[index]
-        if "exp" in file:
+        if EXP in file:
             experimental = True
         else:
             experimental = False
-        version = file.replace("libTkhtml", "").replace("exp", "")
+        version = file.replace("libTkhtml", "").replace(EXP, "")
         version = version[:version.rfind(".")]
         return os.path.join(loc, file), version, experimental
 
