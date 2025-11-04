@@ -137,4 +137,4 @@ def load_tkhtml_file(master, file):
 
 def load_tkhtml(master):
     "Load Tkhtml into the current Tcl/Tk instance"
-    master.tk.call("package", "require", "Tkhtml")
+    return master.tk.call("package", "require", "Tkhtml")
