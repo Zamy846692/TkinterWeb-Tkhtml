@@ -64,20 +64,20 @@ else:
 try:
     from tkinterweb_tkhtml_extras import TKHTML_EXTRAS_ROOT_DIR
     if TKHTML_EXTRAS_ROOT_DIR == None:
-        ALL_TKHTML_BINARIES =  [[TKHTML_ROOT_DIR, file] for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file]
+        ALL_TKHTML_BINARIES =  {(TKHTML_ROOT_DIR, file) for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file}
     else:
-        ALL_TKHTML_BINARIES =  [[TKHTML_ROOT_DIR, file] for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file] + \
-                            [[TKHTML_EXTRAS_ROOT_DIR, file] for file in os.listdir(TKHTML_EXTRAS_ROOT_DIR) if "libTkhtml" in file]
+        ALL_TKHTML_BINARIES =  {(TKHTML_ROOT_DIR, file) for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file} | \
+                            {(TKHTML_EXTRAS_ROOT_DIR, file) for file in os.listdir(TKHTML_EXTRAS_ROOT_DIR) if "libTkhtml" in file}
 except (ImportError, ModuleNotFoundError,):
     TKHTML_EXTRAS_ROOT_DIR = None
-    ALL_TKHTML_BINARIES =  [[TKHTML_ROOT_DIR, file] for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file]
+    ALL_TKHTML_BINARIES =  {(TKHTML_ROOT_DIR, file) for file in os.listdir(TKHTML_ROOT_DIR) if "libTkhtml" in file}
 
 if TclVersion >= 9:
-    TKHTML_BINARIES =  [[loc, file] for loc, file in ALL_TKHTML_BINARIES if "TclTk9" in file]
+    TKHTML_BINARIES =  {(loc, file) for loc, file in ALL_TKHTML_BINARIES if "TclTk9" in file}
     HELP_MESSAGE_EXP = f"Download https://github.com/Andereoo/TkinterWeb-Tkhtml/tree/experimental and run 'python compile.py' to compile Tkhtml. \
 Copy the binary into {TKHTML_ROOT_DIR}, adding 'exp-TclTk9' after the filename (eg. 'libTkhtml3.1exp-TclTk9.dll')"
 else:
-    TKHTML_BINARIES =  [[loc, file] for loc, file in ALL_TKHTML_BINARIES if "TclTk9" not in file]
+    TKHTML_BINARIES =  {(loc, file) for loc, file in ALL_TKHTML_BINARIES if "TclTk9" not in file}
     HELP_MESSAGE_EXP = f"Download https://github.com/Andereoo/TkinterWeb-Tkhtml/tree/experimental and run 'python compile.py' to compile Tkhtml. \
 Copy the binary into {TKHTML_ROOT_DIR}, adding 'exp' after the filename (eg. 'libTkhtml3.1exp.dll')"
 
@@ -111,11 +111,11 @@ def get_tkhtml_file(version=None, index=-1, experimental=False):
     else:
         # Get highest numbered avaliable file if a version is not provided
         if experimental == True:
-            files = [k for k in TKHTML_BINARIES if EXP in k]
+            files = {k for k in TKHTML_BINARIES if EXP in k[1]}
             if not files:
                 raise OSError(f"No experimental Tkhtml versions could be found on your system. {HELP_MESSAGE_EXP}")
         elif not experimental:
-            files = [k for k in TKHTML_BINARIES if EXP not in k]
+            files = {k for k in TKHTML_BINARIES if EXP not in k[1]}
         else:
             files = TKHTML_BINARIES
         loc, file = sorted(files)[index]
