@@ -2198,7 +2198,7 @@ SeeTcl_Get(pInterp, pObj, pProp, pRes)
      *     eval $obj Get $property
      */
     if (!p->pClass || Tcl_FindHashEntry(&p->pClass->aProperty, (char *)pProp)) {
-        rc = callSeeTclMethod(pTclInterp, pTclSeeInterp->pLog, p,"Get",pProp,0);
+        rc = callSeeTclMethod(pTclInterp, pTclSeeInterp->pLog, p, "Get", pProp, NULL);
         throwTclError(pInterp, rc);
         pScriptRes = Tcl_GetObjResult(pTclInterp);
         Tcl_IncrRefCount(pScriptRes);
@@ -2267,7 +2267,7 @@ SeeTcl_CanPut(pInterp, pObj, pProp)
     int rc;
     int ret;
 
-    rc = callSeeTclMethod(pTclInterp, 0, pObject, "CanPut", pProp, 0);
+    rc = callSeeTclMethod(pTclInterp, NULL, pObject, "CanPut", pProp, NULL);
     throwTclError(pInterp, rc);
 
     Tcl_Obj *pRes = Tcl_GetObjResult(pTclInterp);
@@ -2296,7 +2296,7 @@ SeeTcl_HasProperty(pInterp, pObj, pProp)
         !p->pClass || Tcl_FindHashEntry(&p->pClass->aProperty, (char *)pProp)
     )) {
         Tcl_Interp *pTcl = pTclSeeInterp->pTclInterp;
-        rc = callSeeTclMethod(pTcl, 0, p, "HasProperty", pProp, NULL);
+        rc = callSeeTclMethod(pTcl, NULL, p, "HasProperty", pProp, NULL);
         throwTclError(pInterp, rc);
         rc = Tcl_GetBooleanFromObj(pTcl, Tcl_GetObjResult(pTcl), &ret);
         throwTclError(pInterp, rc);
@@ -2315,7 +2315,7 @@ SeeTcl_Delete(pInterp, pObj, pProp)
     Tcl_Interp *pTclInterp = pTclSeeInterp->pTclInterp;
     int rc;
 
-    rc = callSeeTclMethod(pTclInterp, 0, pObject, "Delete", pProp, 0);
+    rc = callSeeTclMethod(pTclInterp, NULL, pObject, "Delete", pProp, NULL);
     throwTclError(pInterp, rc);
 
     return 0;
