@@ -2333,7 +2333,7 @@ SeeTcl_DefaultValue(pInterp, pObj, pHint, pRes)
     Tcl_Interp *pTclInterp = pTclSeeInterp->pTclInterp;
     int rc;
 
-    rc = callSeeTclMethod(pTclInterp, 0, pObject, "DefaultValue", 0, 0);
+    rc = callSeeTclMethod(pTclInterp, NULL, pObject, "DefaultValue", NULL, NULL);
     if (rc == TCL_OK) {
         objToValue(pTclSeeInterp, Tcl_GetObjResult(pTclInterp), pRes, 0);
     } else {
@@ -2467,7 +2467,7 @@ tclEnumerator(pInterp, pObj)
 
     int rc;
 
-    rc = callSeeTclMethod(pTclInterp, 0, pObject, "Enumerator", 0, 0);
+    rc = callSeeTclMethod(pTclInterp, NULL, pObject, "Enumerator", NULL, NULL);
     throwTclError(pInterp, rc);
 
     pRet = Tcl_GetObjResult(pTclInterp);

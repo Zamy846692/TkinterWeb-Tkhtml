@@ -63,7 +63,7 @@ MKSTARKIT = $(STARKITRT) /home/billa/sdx.kit wrap
 #
 JS_SHARED_LIB = libTclsee.dll
 
-JSLIB   = /home/billa/SEE-mirror/libsee/.libs/libsee.a
+JSLIB   = /home/billa/SEE/libsee/.libs/libsee.a
 JSLIB  += /mingw64/lib/libgc.a
 JSFLAGS = -I/home/billa/SEE-mirror/include
 
