@@ -1,0 +1,58 @@
+# Tkhtml test file for JavaScript traceback handling
+proc sourcefile {file} {
+  set fname [file join [file dirname [info script]] $file] 
+  uplevel #0 [list source $fname]
+}
+sourcefile common.tcl
+
+# Test the traceback iteration in handleJavascriptError (hv3see.c)
+# This tests the for loop: for (pTrace = pTry->traceback; pTrace; pTrace = pTrace->prev)
+
+tcltest::test js-traceback-1.0 {Simple JavaScript error with stack trace} -body {
+    set interp [::see::interp]
+    set result [catch {$interp eval {
+        function foo() { bar(); }
+        function bar() { throw "test error"; }
+        foo();
+    } } err]
+    list $result $err
+} -cleanup {
+    catch {$interp destroy}
+} -result {1 {JS_ERROR {test error} {} N/A 1 call foo call bar}}
+
+tcltest::test js-traceback-1.1 {JavaScript error with constructor call in stack trace} -body {
+    set interp [::see::interp]
+    set result [catch {$interp eval {
+        function MyClass() { throw "constructor error"; }
+        new MyClass();
+    } } err]
+    list $result $err
+} -cleanup {
+    catch {$interp destroy}
+} -result {1 {JS_ERROR {constructor error} {} N/A 1 new MyClass}}
+
+tcltest::test js-traceback-1.2 {Multiple stack frames in traceback} -body {
+    set interp [::see::interp]
+    set result [catch {$interp eval {
+        function level3() { throw "deep error"; }
+        function level2() { level3(); }
+        function level1() { level2(); }
+        level1();
+    } } err]
+    list $result $err
+} -cleanup {
+    catch {$interp destroy}
+} -result {1 {JS_ERROR {deep error} {} N/A 1 call level3 call level2 call level1}}
+
+tcltest::test js-traceback-1.3 {JavaScript error with filename and line number} -body {
+    set interp [::see::interp]
+    set result [catch {$interp eval -file "test.js" {
+        function testFunc() { throw "file error"; }
+        testFunc();
+    } } err]
+    list $result $err
+} -cleanup {
+    catch {$interp destroy}
+} -result {1 {JS_ERROR {file error} {} test.js 1 call testFunc}}
+
+finish_test
