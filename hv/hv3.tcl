@@ -1026,7 +1026,7 @@ namespace eval ::hv3::hv3::framelog {
     upvar $me O
     if {![info exists ::hv3::log_source_option]} return
     if {$::hv3::log_source_option} {
-      lappend O(myStyleErrors) [list $id $filename $data $parse_errors]
+      lappend O(myStyleErrors) [list [::tkhtml::decode $id] $filename $data $parse_errors]
     }
   }
 
@@ -1042,7 +1042,6 @@ namespace eval ::hv3::hv3::framelog {
       html { 
         return $O(myHtmlDocument)
       }
-
       css { 
         return $O(myStyleErrors)
       }
