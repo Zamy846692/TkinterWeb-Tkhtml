@@ -1057,6 +1057,8 @@ normalFlowLayoutFloat (
     assert(eFloat == CSS_CONST_LEFT || eFloat == CSS_CONST_RIGHT);
 
   REDO: // This part of the function is rerun once in order to get the height for the second pass
+    if (i) HtmlDrawCleanup(pLayout->pTree, &sBox.vc);
+
     memset(&sBox, 0, sizeof(BoxContext));
     sBox.iContainingW = iContainingW;
 

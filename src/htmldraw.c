@@ -2229,7 +2229,6 @@ searchCanvas(
                 }
                 break;
             }
-
             case CANVAS_MARKER: {
                 if(pItem->c.marker.flags == MARKER_FIXED){
                     assert(bSeenFixedMarker == 0);
@@ -2242,7 +2241,6 @@ searchCanvas(
                 }
                 break;
             }
-
             case CANVAS_OVERFLOW: {
                 if (requireOverflow) {
                     Overflow *pOverflow = (Overflow *)&pItem[1];
@@ -2277,7 +2275,6 @@ searchCanvas(
                 }
                 break;
             }
-           
             default: {
                 Overflow *pOver = 0;
 
@@ -2306,7 +2303,6 @@ searchCanvas(
                 break;
             }
         }
-
         /* Check if we are supposed to pop the overflow stack */
         while (iOverflow >= 0 && pItem == apOverflow[iOverflow]->pItem->pEnd) {
             iOverflow--;
