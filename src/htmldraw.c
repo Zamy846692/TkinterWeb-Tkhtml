@@ -4279,7 +4279,7 @@ static int HtmlPostscriptCb(
         }
         default: goto done;
     }
-    if (pPrint->prepass || !strlen(Tcl_GetStringResult(pPrint->interp))) goto done;
+    if (rc == TCL_ERROR || pPrint->prepass || !strlen(Tcl_GetStringResult(pPrint->interp))) goto done;
     Tcl_AppendToObj(pPrint->psObj, "gsave\n", -1);
     Tcl_AppendObjToObj(pPrint->psObj, Tcl_GetObjResult(pPrint->interp));
     Tcl_AppendToObj(pPrint->psObj, "grestore\n", -1);
