@@ -730,7 +730,7 @@ static int handleJavascriptError(QjsInterp *qjs) {
         Tcl_DecrRefCount(qjs->pTclError);
         qjs->pTclError = NULL;
     } else {
-        Tcl_ListObjAppendElement(NULL, pError, Tcl_NewStringObj("", 0));
+        Tcl_ListObjAppendElement(NULL, pError, Tcl_NewObj());
     }
 
     if (JS_IsError(ctx, exc)) {

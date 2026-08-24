@@ -657,30 +657,38 @@ HtmlImageScale (
 }
 
 static void
-ensurePhotoDecoded(HtmlImage2 *pImage)
+ensurePhotoDecoded(HtmlImage2 *pUnscaled, Tcl_Interp *interp)
 {
-    HtmlImage2 *pU = UNSCALED(pImage);
-    if (!pU->pixmap || !pU->pCompressed) return;
-    Tcl_Interp *interp = pU->pImageServer->pTree->interp;
-    Tk_PhotoHandle h = Tk_FindPhoto(interp, Tcl_GetString(pU->pImageName));
-    Tk_PhotoImageBlock b;
-    if (h) Tk_PhotoGetImage(h, &b);
-    if (h && b.pixelPtr) return;
-    Tcl_Obj *a[4] = {pU->pImageName, Tcl_NewStringObj("configure",-1), Tcl_NewStringObj("-data",-1), pU->pCompressed};
-    Tcl_IncrRefCount(a[1]);
-    Tcl_IncrRefCount(a[2]);
-    pU->nIgnoreChange++;
-    int rc = Tcl_EvalObjv(interp, 4, a, TCL_EVAL_GLOBAL);
-    pU->nIgnoreChange--;
+    Tcl_Obj *apObj[4];
+    int rc;
+
+    if (!pUnscaled->pixmap) return;
+
+    apObj[0] = pUnscaled->pImageName;
+    apObj[1] = Tcl_NewStringObj("configure", -1);
+    apObj[2] = Tcl_NewStringObj("-data", -1);
+    apObj[3] = pUnscaled->pCompressed;
+
+    for(rc=1; rc<4;) Tcl_IncrRefCount(apObj[rc++]);
+    pUnscaled->nIgnoreChange++;
+    rc = Tcl_EvalObjv(interp, 4, apObj, TCL_EVAL_GLOBAL);
+    pUnscaled->nIgnoreChange--;
     assert(rc==TCL_OK);
-    (void)rc;
-    Tcl_DecrRefCount(a[2]);
-    Tcl_DecrRefCount(a[1]);
+	#ifdef NDEBUG
+	(void)rc; // prevent unused variable warning when assertions are disabled
+	#endif
+    Tcl_IncrRefCount(apObj[3]);
+    Tcl_DecrRefCount(apObj[2]);
+    Tcl_DecrRefCount(apObj[1]);
 }
 
 Tk_Image
 HtmlImageImage(HtmlImage2 *pImage)
 {
+    Tcl_Interp *interp = pImage->pImageServer->pTree->interp;
+    HtmlImage2 *pUnscaled;
+    Tk_PhotoHandle photo;
+    Tk_PhotoImageBlock block;
     assert(pImage && (pImage->isValid == 1 || pImage->isValid == 0));
     if (!pImage->isValid) {
         /* pImage->image is invalid. This happens if the underlying Tk
@@ -688,11 +696,8 @@ HtmlImageImage(HtmlImage2 *pImage)
          * or deleted. It also happens the first time this function is
          * called after a call to HtmlImageScale().
          */ 
-        Tk_PhotoHandle photo;
-        Tk_PhotoImageBlock block;
-        Tcl_Interp *interp = pImage->pImageServer->pTree->interp;
-        HtmlImage2 *pUnscaled = pImage->pUnscaled;
-        ensurePhotoDecoded(pImage);
+        pUnscaled = pImage->pUnscaled;
+        ensurePhotoDecoded(pUnscaled, interp);
 
         assert(pUnscaled);
         if (!pImage->pImageName) {
@@ -702,7 +707,6 @@ HtmlImageImage(HtmlImage2 *pImage)
              * command etc.?
              */
             Tk_Window win = pImage->pImageServer->pTree->tkwin;
-            Tcl_Interp *interp = pImage->pImageServer->pTree->interp;
             const char *z;
 
             Tcl_Eval(interp, "image create photo");
@@ -793,7 +797,15 @@ HtmlImageImage(HtmlImage2 *pImage)
             Tcl_IncrRefCount(apObj[0]);
         }
     }
-    ensurePhotoDecoded(pImage);
+    /* If the image has been pixmapified, the photo image may have been
+     * re-created empty to save memory. Re-decode the compressed data
+     * into the photo image now, so that any consumers of the photo pixel
+     * data (e.g. the PostScript image routines) have valid data to work with.
+     */
+    pUnscaled = UNSCALED(pImage);
+    photo = Tk_FindPhoto(interp, Tcl_GetString(pUnscaled->pImageName));
+    if (photo) Tk_PhotoGetImage(photo, &block);
+    if (!(photo && block.pixelPtr)) ensurePhotoDecoded(pUnscaled, interp);
     return pImage->image;
 }
 
