@@ -821,6 +821,8 @@ void HtmlImageFree(HtmlImage2 *);
 void HtmlImageRef(HtmlImage2 *);
 const char *HtmlImageUrl(HtmlImage2 *);
 void HtmlImageCheck(HtmlImage2 *);
+Html_u8 HtmlImageIsValid(HtmlImage2 *);
+int HtmlImageRefCount(HtmlImage2 *);
 Tcl_Obj *HtmlPixmapToImage(HtmlTree *, Pixmap, int, int);
 int HtmlImageAlphaChannel(HtmlImage2 *);
 

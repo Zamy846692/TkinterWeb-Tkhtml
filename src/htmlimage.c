@@ -803,6 +803,7 @@ HtmlImageImage(HtmlImage2 *pImage)
      * data (e.g. the PostScript image routines) have valid data to work with.
      */
     pUnscaled = UNSCALED(pImage);
+    if (!pUnscaled || !pUnscaled->pImageName) return pImage->image;
     photo = Tk_FindPhoto(interp, Tcl_GetString(pUnscaled->pImageName));
     if (photo) Tk_PhotoGetImage(photo, &block);
     if (!(photo && block.pixelPtr)) ensurePhotoDecoded(pUnscaled, interp);
@@ -1054,6 +1055,7 @@ HtmlImageCheck (HtmlImage2 *pImage)
         assert(pImage->isValid == 0 || pImage->isValid == 1);
     }
 }
+Html_u8 HtmlImageIsValid(HtmlImage2 *pImage){ return pImage && pImage->isValid && pImage->nRef; }
 
 /*
  *---------------------------------------------------------------------------

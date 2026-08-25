@@ -1212,7 +1212,7 @@ int ImageToPostscript(HtmlTree *pTree, HtmlImage2 *pImage, int x, int y, int pre
     Tk_PostscriptInfo psInfo = pTree->psInfo;
     int w, h;
 
-    if (pImage == NULL) { /* Image item without actual image specified. */
+    if (pImage == NULL || !HtmlImageIsValid(pImage)) { /* Image item without actual image specified. */
         return TCL_OK;
     }
     HtmlImageSize(pImage, &w, &h);
@@ -1312,8 +1312,9 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
             ) != TCL_OK) goto error;
         }
     }
-    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->imZoomedBackgroundImage) { /* Image background, if required. */
+    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->imZoomedBackgroundImage && HtmlImageIsValid(pV->imZoomedBackgroundImage)) {
         int iWidth, iHeight, eR = pV->eBackgroundRepeat;
+        HtmlImageSize(pV->imZoomedBackgroundImage, &iWidth, &iHeight);
 
         if (iWidth > 0 && iHeight > 0) {
             int iPosX = pV->iBackgroundPositionX;
