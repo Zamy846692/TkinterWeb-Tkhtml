@@ -524,6 +524,8 @@ static void eventTargetInit(QjsInterp *qjs, JSValue o)
         Tcl_BackgroundError(pTcl);
         return;
     }
+    Tcl_IncrRefCount(pList);
+
     for (i = 0; i < nWord-1; i += 2){
         /* Construct a string like this:
          *
@@ -546,6 +548,7 @@ static void eventTargetInit(QjsInterp *qjs, JSValue o)
         JS_FreeValue(qjs->ctx, res);
         Tcl_DecrRefCount(pJ);
     }
+    Tcl_DecrRefCount(pList);
     Tcl_ResetResult(pTcl);
 }
 
