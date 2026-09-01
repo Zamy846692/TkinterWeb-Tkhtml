@@ -750,7 +750,7 @@ static int fill_quadPs(
     return TCL_OK;
 }
 
-static int fill_rectanglePs(
+static inline int fill_rectanglePs(
     Tcl_Interp *interp,
     Tk_PostscriptInfo psInfo,
     Tcl_Obj *psObj,

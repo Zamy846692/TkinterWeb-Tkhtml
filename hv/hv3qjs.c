@@ -998,7 +998,8 @@ static int interpGlobalSet(QjsInterp *qjs, Tcl_Obj *pProp, Tcl_Obj *pVal)
 {
 	if (pProp == NULL) {
 		QjsTclObject *w = JS_GetOpaque(qjs->global, QjsTclClassId);
-		Tcl_SetObjResult(qjs->interp, w->pObj);
+		Tcl_Obj *p = Tcl_IsShared(w->pObj) ? Tcl_DuplicateObj(w->pObj) : w->pObj;
+		Tcl_SetObjResult(qjs->interp, p);
 	} else if (pVal == NULL) {
 		JSValue prop = JS_GetPropertyStr(qjs->ctx, qjs->global, Tcl_GetString(pProp));
 		Tcl_SetObjResult(qjs->interp, qjsValueToTcl(qjs->ctx, prop));
