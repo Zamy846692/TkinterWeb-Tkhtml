@@ -404,7 +404,7 @@ static int callQjsTclMethod(
     }
 
     rc = evalObjv(interp, p->nWord+nArg, p->apWord);
-	
+
     if (pLog && rc==TCL_OK) {
         Tcl_Obj *pEval = Tcl_DuplicateObj(pLog);
         Tcl_Obj *pRes = Tcl_GetObjResult(interp);
@@ -420,7 +420,9 @@ static int callQjsTclMethod(
         Tcl_SetObjResult(interp, pRes);
         Tcl_DecrRefCount(pRes);
     }
-	
+
+    Tcl_DecrRefCount(pProp);
+
     return rc;
 }
 
@@ -998,11 +1000,12 @@ static int interpGlobalSet(QjsInterp *qjs, Tcl_Obj *pProp, Tcl_Obj *pVal)
 {
 	if (pProp == NULL) {
 		QjsTclObject *w = JS_GetOpaque(qjs->global, QjsTclClassId);
-		Tcl_Obj *p = Tcl_IsShared(w->pObj) ? Tcl_DuplicateObj(w->pObj) : w->pObj;
-		Tcl_SetObjResult(qjs->interp, p);
+		Tcl_SetObjResult(qjs->interp, w->pObj);
 	} else if (pVal == NULL) {
 		JSValue prop = JS_GetPropertyStr(qjs->ctx, qjs->global, Tcl_GetString(pProp));
-		Tcl_SetObjResult(qjs->interp, qjsValueToTcl(qjs->ctx, prop));
+		Tcl_Obj *p = qjsValueToTcl(qjs->ctx, prop);
+		Tcl_IncrRefCount(p);
+		Tcl_SetObjResult(qjs->interp, p);
 	} else {
 	    JS_SetPropertyStr(qjs->ctx, qjs->global, Tcl_GetString(pProp), objToValue(qjs->ctx, pVal));
 	}
@@ -1238,7 +1241,7 @@ static int tclQjsInterp(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *co
 	
 	JSValue Global = JS_GetGlobalObject(qjs->ctx);
 	eventTargetGlobalInit(qjs, Global);  // This must be done BEFORE any Tcl-JS objects are created
-	qjs->global = findOrCreateObject(qjs, objv[1]);
+	qjs->global = findOrCreateObject(qjs, Tcl_IsShared(objv[1])?Tcl_DuplicateObj(objv[1]):objv[1]);
 	assert(1 == JS_SetPrototype(qjs->ctx, Global, qjs->global));
     /* Initialize the object's event subsystem */
 	interpTimeoutInit(qjs->ctx, Global);
@@ -1284,7 +1287,8 @@ QjsTcl_Get(JSContext *ctx, JSPropertyDescriptor *desc, JSValueConst obj, JSAtom 
 		Tcl_DecrRefCount(pScriptRes);
 		desc->flags = JS_PROP_ENUMERABLE | JS_PROP_WRITABLE;
 		// Caching of DOM methods
-		if (JS_IsFunction(ctx, desc->value)) JS_DefinePropertyValue(ctx, obj, prop, JS_DupValue(ctx, desc->value), desc->flags);
+		if (JS_IsFunction(ctx, desc->value)) 
+			JS_DefinePropertyValue(ctx, obj, prop, JS_DupValue(ctx, desc->value), desc->flags);
 	}
 	return 1;
 }
