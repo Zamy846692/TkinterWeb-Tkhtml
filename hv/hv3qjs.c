@@ -216,7 +216,7 @@ static void interpTimeoutCleanup(QjsInterp *);
 
 static int allocWordArray(QjsInterp *qjs, QjsTclObject *w, int nExtra)
 {
-    if ((!w->nWord) || ((w->nAllocWord - w->nWord) < nExtra))
+    if (!w->nWord || w->nAllocWord - w->nWord < nExtra)
     {
         int n, rc;
         Tcl_Obj **ap;
@@ -1369,14 +1369,16 @@ tclCallOrConstruct(JSContext *ctx, JSValueConst obj, JSValueConst this, int argc
 
     /* Make sure there is enough space to marshall the arguments */
 	allocWordArray(qjs, p, argc+1);
-	
+
 	/* Set and reference-count "this" argument */
 	if (JS_IsUndefined(this)) this = qjs->global;
 	JSClassID id = f & JS_CALL_FLAG_CONSTRUCTOR ? QjsTclCallClassId : QjsTclClassId;
 	QjsTclObject *pTh = JS_GetOpaque(this, id);
+	if (!pTh) return JS_ThrowTypeError(ctx, "invalid this object");
+	Tcl_IncrRefCount(pTh->pObj);
+	for (i=0; i<pTh->nWord;) Tcl_IncrRefCount(pTh->apWord[i++]);
 	p->apWord[p->nWord] = pTh->pObj;
-	Tcl_IncrRefCount(p->apWord[p->nWord]);
-	
+
 	/* Convert arguments and increment reference counts in one loop */
     for (i = 0; i < argc; i++) {
 		nWI = p->nWord + i + 1;
@@ -1384,7 +1386,7 @@ tclCallOrConstruct(JSContext *ctx, JSValueConst obj, JSValueConst this, int argc
         Tcl_IncrRefCount(p->apWord[nWI]);
     }
     rc = evalObjv(qjs->interp, p->nWord+argc+1, p->apWord);
-	for (i = 0; i < argc; i++) {
+	for (i = 0; i <= argc; i++) {
         Tcl_DecrRefCount(p->apWord[p->nWord + i]);
     }
     removeTransientRefs(qjs, nObj);

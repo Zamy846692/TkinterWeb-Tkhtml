@@ -513,7 +513,7 @@ static void eventTargetInit(QjsInterp *qjs, JSValue o)
 {
     Tcl_Interp *pTcl = qjs->interp;
     Tcl_Obj *pList, **apWord;
-    int nWord, i, l;
+    int nWord;
 
     if (callQjsTclMethod(pTcl, NULL, o, Tcl_NewStringObj("Events", 6), NULL) != TCL_OK) {
         Tcl_BackgroundError(pTcl);
@@ -526,7 +526,7 @@ static void eventTargetInit(QjsInterp *qjs, JSValue o)
     }
     Tcl_IncrRefCount(pList);
 
-    for (i = 0; i < nWord-1; i += 2){
+    for (int l, i = 0; i < nWord-1; i += 2){
         /* Construct a string like this:
          *
          *   this.$zAttr = function (event) { $zScript }
