@@ -476,7 +476,7 @@ static void finalizeObject(JSRuntime *rt, JSValue val)
         /* Execute the Tcl Finalize hook. Do nothing with the result thereof. */
         Tcl_Interp *interp = JS_GetRuntimeOpaque(rt);
         if (callQjsTclMethod(interp, NULL, val, Tcl_NewStringObj("Finalize", 8), NULL) != TCL_OK) {
-            Tcl_AppendResult(interp, "WARNING Qjstcl: Finalize script failed for ");
+            Tcl_AppendResult(interp, "WARNING Qjstcl: Finalize script failed for ", (char*)NULL);
 			Tcl_AppendObjToObj(Tcl_GetObjResult(interp), qjsTclObj->pObj);
         }
 	    assert(qjsTclObj->pObj->refCount >= 1);
@@ -822,7 +822,7 @@ processArgs(Tcl_Interp *interp, TclCmdArg *aOpt, int objc, Tcl_Obj *const objv[]
         if (0 == aOpt[idx].isBoolean) {
             i++;
             if (i >= objc) {
-                Tcl_AppendResult(interp, "option ", aOpt[idx].zName, " requires an argument", 0);
+                Tcl_AppendResult(interp, "option ", aOpt[idx].zName, " requires an argument", (char *)NULL);
                 return TCL_ERROR;
             }
         }
@@ -948,17 +948,18 @@ static int interpCall(QjsInterp *qjs, int objc, Tcl_Obj *const objv[])
     return rc;
 }
 
+static void procDelete(ClientData cd){ Tcl_DecrRefCount((Tcl_Obj*)cd); }
 static int procCall(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-	if (Tcl_GetCommandFromObj(interp, cd)) {
+	if (Tcl_GetCommandFromObj(interp, (Tcl_Obj*)cd)) {
 		Tcl_CmdInfo info;
 		Tcl_Obj *objv2[objc+2];
 		memmove(&objv2[2], objv, sizeof(Tcl_Obj*) * objc);
-		Tcl_GetCommandInfo(interp, Tcl_GetString(cd), &info);
+		Tcl_GetCommandInfo(interp, Tcl_GetString((Tcl_Obj*)cd), &info);
 		return interpCall((QjsInterp *)info.objClientData, objc+2, objv2);
 	}
 	Tcl_DeleteCommand(interp, Tcl_GetString(objv[0]));
-	Tcl_SetObjResult(interp, Tcl_ObjPrintf("QuickJS context %s has been destroyed", Tcl_GetString(cd)));
+	Tcl_SetObjResult(interp, Tcl_ObjPrintf("QuickJS context %s has been destroyed", Tcl_GetString((Tcl_Obj*)cd)));
 	return TCL_ERROR;
 }
 static int interpProc(QjsInterp *qjs, int objc, Tcl_Obj *const objv[])
@@ -992,7 +993,9 @@ static int interpProc(QjsInterp *qjs, int objc, Tcl_Obj *const objv[])
 
 	if (JS_IsException(result)) return handleJavascriptError(qjs);
 	JS_FreeValue(qjs->ctx, result);
-	Tcl_CreateObjCommand(qjs->interp, funcName, procCall, objv[0], NULL);
+	Tcl_Obj *pInterpName = Tcl_DuplicateObj(objv[0]);
+	Tcl_IncrRefCount(pInterpName);
+	Tcl_CreateObjCommand(qjs->interp, funcName, procCall, pInterpName, procDelete);
 	return TCL_OK;
 }
 
