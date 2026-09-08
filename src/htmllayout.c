@@ -425,7 +425,7 @@ normalFlowMarginAdd (LayoutContext *pLayout, HtmlNode *pNode, NormalFlow *pNorma
     }
 }
 
-static inline int 
+static int 
 paginationOffsetInside(LayoutContext *pLayout, HtmlNode *pNode, HtmlComputedValues *pV, int *pY, int y, int h)
 {
     int pagebreak, paginationY = pLayout->pTree->options.pagination;
@@ -435,7 +435,7 @@ paginationOffsetInside(LayoutContext *pLayout, HtmlNode *pNode, HtmlComputedValu
         case CSS_CONST_AUTO: break;
         case CSS_CONST_AVOID:
             pagebreak = (y + paginationY - 1) / paginationY * paginationY; // Ceiling division to find the first multiple
-            if (pagebreak >= y && pagebreak <= y + h) {
+            if (pagebreak > y && pagebreak < y + h) {
                 *pY += pagebreak - y;
                 y = pagebreak;
             }
@@ -1423,9 +1423,8 @@ markerBoxLayout (
 int paginationPageYOrigin (int y, LayoutContext *pLayout)
 {
     if (pLayout->pTree->options.pagination > 0) {
-        static int origin = 0;
-        origin += y;
-        return origin;
+        pLayout->paginationOrigin += y;
+        return pLayout->paginationOrigin;
     }
     return 0;
 }
@@ -1506,7 +1505,7 @@ inlineLayoutDrawLines (
                 int pagebreak;
                 y += paginationPageYOrigin(0, pLayout);
                 pagebreak = (y + paginationY - 1) / paginationY * paginationY; // Ceiling division to find the first multiple
-                if (pagebreak >= y && pagebreak <= y+nV) y = pagebreak;
+                if (pagebreak > y && pagebreak < y+nV) y = pagebreak;
                 y -= paginationPageYOrigin(0, pLayout);
             }
             DRAW_CANVAS(&pBox->vc, &lc, leftFloat, y, 0); // This is where content is drawn onto the canvas

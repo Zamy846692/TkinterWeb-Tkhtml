@@ -34,6 +34,8 @@ struct LayoutContext {
 
     int minmaxTest;          /* Currently figuring out min/max widths */
 
+    unsigned int paginationOrigin; /* Accumulated Y offset for pagination */
+
     NodeListLink *pAbsolute;     /* List of nodes with "absolute" 'position' */
     NodeListLink *pFixed;        /* List of nodes with "fixed" 'position' */
 };

@@ -319,6 +319,12 @@ int HtmlPostscript(
         getPageCentre(pPsInfo);
         
         pTree->options.pagination = SCALEDHEIGHT(pPsInfo);
+        /* Adjust scale so layout pages align exactly with PostScript pages.
+         * Otherwise page_h*scale != pageSize.height causes a small per-page
+         * error that accumulates, making bottom lines leak increasingly. */
+        if (pTree->options.pagination > 0) {
+            pPsInfo->scale = (double)psInfo.pageSize.height / (double)pTree->options.pagination;
+        }
 		oldforcewidth = pTree->options.forcewidth;
         pTree->options.forcewidth = 1; /* If a page size has been set, make sure layout width is set to it. */
 		oldwidth = pTree->options.width;
