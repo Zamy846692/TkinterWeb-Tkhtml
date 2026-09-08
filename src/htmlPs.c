@@ -1158,9 +1158,10 @@ int TextToPostscript(Tk_PostscriptInfo psInfo, const char *z, int n, int x, int 
     if (prepass) goto done;
 
     Tcl_ResetResult(interp);
-    if (Tk_PostscriptColor(interp, psInfo, pV->cColor->xcolor) != TCL_OK) goto error;
-    Tcl_AppendObjToObj(psObj, Tcl_GetObjResult(interp));
-    
+    if (pV->cColor->xcolor) {
+        if (Tk_PostscriptColor(interp, psInfo, pV->cColor->xcolor) != TCL_OK) goto error;
+        Tcl_AppendObjToObj(psObj, Tcl_GetObjResult(interp));
+    }
     switch (pV->eTextAlign) {
         case CSS_CONST_CENTER: anchor = 1/6; justify = "0";  break;
         case CSS_CONST_RIGHT:  anchor = 1/3; justify = "1";  break;
