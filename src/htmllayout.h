@@ -153,7 +153,7 @@ int HtmlTableLayout(LayoutContext*, BoxContext*, HtmlNode*);
 int HtmlLayoutNodeContent(LayoutContext *, BoxContext *, HtmlNode *);
 
 void HtmlLayoutDrawBox(HtmlTree*,HtmlCanvas*,int,int,int,int,HtmlNode*,int,int);
-int paginationPageYOrigin(int, LayoutContext*);
+void paginationPageYOrigin(int, LayoutContext*);
 
 /*
  *---------------------------------------------------------------------------

@@ -430,7 +430,7 @@ paginationOffsetInside(LayoutContext *pLayout, HtmlNode *pNode, HtmlComputedValu
 {
     int pagebreak, paginationY = pLayout->pTree->options.pagination;
     if (!paginationY || pNode == pLayout->pTree->pRoot) return y;
-    y += paginationPageYOrigin(0, pLayout);
+    y += pLayout->paginationOrigin;
     switch (pV->ePageBreakInside) {
         case CSS_CONST_AUTO: break;
         case CSS_CONST_AVOID:
@@ -441,7 +441,7 @@ paginationOffsetInside(LayoutContext *pLayout, HtmlNode *pNode, HtmlComputedValu
             }
             break;
     }
-    y -= paginationPageYOrigin(0, pLayout);
+    y -= pLayout->paginationOrigin;
     return y;
 }
 static void 
@@ -1420,13 +1420,10 @@ markerBoxLayout (
     return 1;
 }
 
-int paginationPageYOrigin (int y, LayoutContext *pLayout)
+void paginationPageYOrigin (int y, LayoutContext *pLayout)
 {
-    if (pLayout->pTree->options.pagination > 0) {
+    if (pLayout->pTree->options.pagination > 0)
         pLayout->paginationOrigin += y;
-        return pLayout->paginationOrigin;
-    }
-    return 0;
 }
 /*
  *---------------------------------------------------------------------------
@@ -1503,10 +1500,10 @@ inlineLayoutDrawLines (
         if (have) {
             if (paginationY && !brk) {
                 int pagebreak;
-                y += paginationPageYOrigin(0, pLayout);
+                y += pLayout->paginationOrigin;
                 pagebreak = (y + paginationY - 1) / paginationY * paginationY; // Ceiling division to find the first multiple
                 if (pagebreak > y && pagebreak < y+nV) y = pagebreak;
-                y -= paginationPageYOrigin(0, pLayout);
+                y -= pLayout->paginationOrigin;
             }
             DRAW_CANVAS(&pBox->vc, &lc, leftFloat, y, 0); // This is where content is drawn onto the canvas
             if (pLayout->minmaxTest == 0) {
