@@ -67,7 +67,10 @@ static inline void setBooleanFlag(JSContext *ctx, JSValue obj, const char *z, in
 /* Helper function to set boolean flag */
 static inline int getBooleanFlag(JSContext *ctx, JSValue obj, const char *z)
 {
-    return valueToBoolean(ctx, JS_GetPropertyStr(ctx, obj, z), 0);
+    JSValue v = JS_GetPropertyStr(ctx, obj, z);
+    int r = valueToBoolean(ctx, v, 0);
+    JS_FreeValue(ctx, v);
+    return r;
 }
 
 static EventType **getEventList(JSValue obj) {
@@ -166,7 +169,11 @@ static JSValue getParentNode(JSContext *ctx, JSValueConst o)
         }
     }
     JSValue val = JS_GetPropertyStr(ctx, o, "parentNode");
-    return JS_IsUndefined(val) ? JS_NULL : val;
+    if (JS_IsUndefined(val)) {
+        JS_FreeValue(ctx, val);
+        return JS_NULL;
+    }
+    return val;
 }
 
 /*
@@ -210,7 +217,7 @@ static JSValue dispatchEventFunc(JSContext *ctx, JSValueConst this, int argc, JS
         return JS_ThrowTypeError(ctx, "Function requires exactly 1 parameter");
     }
 
-    if (!JS_IsObject(argv[0]) || JS_GetClassID(argv[0])>=QjsTclClassId) 
+    if (!JS_IsObject(argv[0]) || JS_GetClassID(argv[0])==QjsTclClassId || JS_GetClassID(argv[0])==QjsTclCallClassId)
 		return JS_ThrowTypeError(ctx, "Function parameter must be 'native' object");
 
     event = argv[0];
@@ -469,10 +476,13 @@ static JSValue EventFunc(JSContext *ctx, JSValueConst new_target, int argc, JSVa
         JSValue opt;
         opt = JS_GetPropertyStr(ctx, argv[1], "bubbles");
         if (!JS_IsUndefined(opt)) JS_SetPropertyStr(ctx, event, "bubbles", opt);
+        else JS_FreeValue(ctx, opt);
         opt = JS_GetPropertyStr(ctx, argv[1], "cancelable");
         if (!JS_IsUndefined(opt)) JS_SetPropertyStr(ctx, event, "cancelable", opt);
+        else JS_FreeValue(ctx, opt);
         opt = JS_GetPropertyStr(ctx, argv[1], "composed");
         if (!JS_IsUndefined(opt)) JS_SetPropertyStr(ctx, event, "composed", opt);
+        else JS_FreeValue(ctx, opt);
     }
     JS_DefinePropertyValue(ctx, event, JS_ATOM_Symbol_toStringTag, JS_NewString(ctx, "Event"), 0);
     return event;

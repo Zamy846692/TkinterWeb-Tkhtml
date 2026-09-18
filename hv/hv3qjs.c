@@ -1230,7 +1230,7 @@ static int tclQjsInterp(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *co
         Tcl_WrongNumArgs(interp, 1, objv, "GLOBAL-OBJCOMMAND");
         return TCL_ERROR;
     }
-	if (!numQjsInterp - numFreeInterp) {
+	if (0 == numQjsInterp - numFreeInterp) {
 		runtime = JS_NewRuntime();
 		getExoticObj(runtime);
 	}
