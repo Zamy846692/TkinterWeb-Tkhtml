@@ -225,6 +225,7 @@ static int allocWordArray(QjsInterp *qjs, QjsTclObject *w, int nExtra)
 
         w->nWord = n;
         w->nAllocWord = n + nExtra;
+        if (w->apWord) js_free(qjs->ctx, w->apWord);
         w->apWord = js_malloc(qjs->ctx, sizeof(Tcl_Obj*) * w->nAllocWord);
         memcpy(w->apWord, ap, n*sizeof(Tcl_Obj*));
     }
@@ -777,7 +778,10 @@ static void delInterpCmd(ClientData cd) {
 			Tcl_DecrRefCount(qjs->pLog);
 			qjs->pLog = NULL;
 		}
-		
+		if (qjs->pTclError) {
+			Tcl_DecrRefCount(qjs->pTclError);
+			qjs->pTclError = NULL;
+		}
 		JS_FreeValue(qjs->ctx, qjs->global);
 
 		Tcl_HashSearch search;
