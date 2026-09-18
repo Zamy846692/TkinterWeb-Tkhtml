@@ -1416,14 +1416,18 @@ static void getExoticObj(JSRuntime *rt) {
 static int 
 tclQjsAlloc(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    Tcl_SetObjResult(interp, debugAlloc(runtime));
+    if (runtime && numQjsInterp - numFreeInterp > 0) {
+        Tcl_SetObjResult(interp, debugAlloc(runtime));
+    } else {
+        Tcl_SetObjResult(interp, Tcl_NewObj());
+    }
     return TCL_OK;
 }
 
 static int 
 tclQjsCollect(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-	if (numQjsInterp - numFreeInterp > 0) JS_RunGC(runtime);
+	if (runtime && numQjsInterp - numFreeInterp > 0) JS_RunGC(runtime);
     return TCL_OK;
 }
 
