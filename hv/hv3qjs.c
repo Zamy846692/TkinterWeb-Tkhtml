@@ -332,7 +332,7 @@ argValueToTcl(QjsInterp *qjs, JSValueConst val, int *pN) {
 			/* Create the new QjsJsObject structure. */
 			QjsJsObject *pJsObject = js_malloc(qjs->ctx, sizeof(QjsJsObject));
 			pJsObject->iKey = qjs->iNextJsObject++;
-			pJsObject->object = val;
+			pJsObject->object = JS_DupValue(qjs->ctx, val);
 
 			pJsObject->pNext = qjs->pJsObject;
 			qjs->pJsObject = pJsObject;
@@ -350,7 +350,8 @@ static void removeTransientRefs(QjsInterp *qjs, int n)
     while (n--) {
 		QjsJsObject *pJsObject = qjs->pJsObject;
         qjs->pJsObject = qjs->pJsObject->pNext;
-		js_free(qjs->ctx, pJsObject);
+		JS_FreeValue(qjs->ctx, pJsObject->object);
+        js_free(qjs->ctx, pJsObject);
     } if (qjs->pJsObject == NULL) qjs->iNextJsObject = 0;
 }
 
