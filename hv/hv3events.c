@@ -141,15 +141,17 @@ runEvent(JSContext *ctx, JSValue target, JSValue event, JSValue zType, uint8_t i
 static JSValue preventDefaultFunc(JSContext *ctx, JSValueConst this, int c, JSValueConst *v)
 {
     setBooleanFlag(ctx, this, PREVENT_DEFAULT, 1);
+    return JS_UNDEFINED;
 }
 
 /* stopPropagation function */
 static JSValue stopPropagationFunc(JSContext *ctx, JSValueConst this, int c, JSValueConst *v)
 {
     setBooleanFlag(ctx, this, STOP_PROPAGATION, 1);
+    return JS_UNDEFINED;
 }
 
-static JSValue getParentNode(JSContext *ctx, JSValue o)
+static JSValue getParentNode(JSContext *ctx, JSValueConst o)
 {
     if (JS_GetClassID(o) == QjsTclClassId) {
         NodeHack *pNode = ((QjsTclObject*)JS_GetOpaque(o, QjsTclClassId))->nodehandle;

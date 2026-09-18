@@ -2152,7 +2152,7 @@ namespace eval ::hv3::hv3 {
       set path [$uri_obj path]
       if {[regexp {\.([A-Za-z0-9]+)$} $path dumO(my) ext]} {
         switch -- [string tolower $ext] {
-  	jpg  { set mimetype image/jpeg }
+          jpg  { set mimetype image/jpeg }
           jpeg { set mimetype image/jpeg }
           gif  { set mimetype image/gif  }
           png  { set mimetype image/png  }
