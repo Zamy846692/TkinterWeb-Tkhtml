@@ -1337,13 +1337,15 @@ QjsTcl_Enumerator(JSContext *ctx, JSPropertyEnum **pTab, uint32_t *pLen, JSValue
 
     rc = Tcl_ListObjGetElements(interp, Tcl_GetObjResult(interp), pLen, &apRet);
     if (rc != TCL_OK) goto error;
+    nRet = *pLen;
 
-    if (*pLen > 0) {
-        pEnum = js_malloc(ctx, sizeof(pEnum[0]) * *pLen);
+    if (nRet > 0) {
+        pEnum = js_malloc(ctx, sizeof(pEnum[0]) * nRet);
         if (!pEnum) goto error;
     }
+	else pEnum = NULL;
 
-    for (int i = 0; i < *pLen; i++) {
+    for (int i = 0; i < nRet; i++) {
         pEnum[i].atom = JS_NewAtom(ctx, Tcl_GetString(apRet[i]));
     }
 	*pTab = pEnum;
