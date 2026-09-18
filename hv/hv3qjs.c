@@ -1338,7 +1338,10 @@ QjsTcl_Enumerator(JSContext *ctx, JSPropertyEnum **pTab, uint32_t *pLen, JSValue
     rc = Tcl_ListObjGetElements(interp, Tcl_GetObjResult(interp), pLen, &apRet);
     if (rc != TCL_OK) goto error;
 
-    if (*pLen > 0) pEnum = js_malloc(ctx, sizeof(pEnum[0]) * *pLen);
+    if (*pLen > 0) {
+        pEnum = js_malloc(ctx, sizeof(pEnum[0]) * *pLen);
+        if (!pEnum) goto error;
+    }
 
     for (int i = 0; i < *pLen; i++) {
         pEnum[i].atom = JS_NewAtom(ctx, Tcl_GetString(apRet[i]));
@@ -1347,7 +1350,6 @@ QjsTcl_Enumerator(JSContext *ctx, JSPropertyEnum **pTab, uint32_t *pLen, JSValue
 
     return 0;
 	error:
-		JS_FreePropertyEnum(ctx, pEnum, *pLen);
 		throwTclError(ctx, rc);
 		return -1;
 }
