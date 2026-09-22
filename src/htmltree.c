@@ -2104,6 +2104,13 @@ nodeTextCommand(
         zNew = Tcl_GetStringFromObj(objv[3], &nNew);
         HtmlTextSet(pOrig, nNew, zNew, 0, 0);
 
+        /* HtmlTextSet may reallocate (or reuse in place) the text buffer
+         * that existing canvas items and the previous snapshot reference,
+         * hiding the content change from the snapshot diff. Mark the node
+         * dirty so the diff schedules a repaint.
+         */
+        HtmlCallbackDamageNode(pTree, pNode);
+
     } else if (eChoice == NODE_TEXT_PRE) {
         pRet = nodeGetPreText(HtmlNodeAsText(pNode));
         Tcl_IncrRefCount(pRet);
@@ -2715,9 +2722,19 @@ node_attr_usage:
          *
          */
         case NODE_INSERT: {
+            int rc;
             HtmlCallbackRestyle(pTree, pNode);
             HtmlCallbackLayout(pTree, pNode);
-            return nodeInsertCmd(pNode, objc, objv);
+            rc = nodeInsertCmd(pNode, objc, objv);
+            if (rc == TCL_OK) {
+                /* Newly inserted nodes may reuse the canvas text buffers of
+                 * destroyed nodes (allocator address reuse), so the snapshot
+                 * diff cannot detect their content change by pointer
+                 * comparison. Mark the subtree dirty so the diff damages it.
+                 */
+                HtmlCallbackDamageNode(pTree, pNode);
+            }
+            return rc;
         }
 
         /*
