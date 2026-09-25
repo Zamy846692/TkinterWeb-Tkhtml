@@ -556,8 +556,13 @@ static JSValue findOrCreateObject(QjsInterp *qjs, Tcl_Obj *pTclCmd)
         /* Initialise the objects events subsystem. */
         eventTargetInit(qjs, pObject->v);
 
-		JS_SetProperty(qjs->ctx, pObject->v, JS_ATOM_Symbol_toStringTag, JS_NewString(
-			qjs->ctx, Tcl_GetCommandName(interp, Tcl_GetCommandFromObj(interp, p->apWord[0]))));
+	 // Must use DefineProperty because Symbol.toStringTag is not Writable, Enumerable or Configurable.
+		if (JS_DefineProperty(qjs->ctx, pObject->v, JS_ATOM_Symbol_toStringTag, JS_UNDEFINED, JS_UNDEFINED, 
+			JS_NewString(qjs->ctx, 
+				Tcl_GetCommandName(interp, 
+					Tcl_GetCommandFromObj(interp, p->apWord[0])
+				)
+			), JS_PROP_NO_EXOTIC) < 0) return JS_EXCEPTION;
     }
     /* Existing entry found */
     pObject = (JSValueEntry *)Tcl_GetHashValue(pEntry);
