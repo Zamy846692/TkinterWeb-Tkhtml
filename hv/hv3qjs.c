@@ -292,8 +292,10 @@ static Tcl_Obj *qjsValueToTcl(JSContext *ctx, JSValue val) {
             break;
         case JS_TAG_OBJECT: {
             if (JS_IsArray(ctx, val)) {
-				JS_ToUint32(ctx, &i, JS_GetPropertyStr(ctx, val, "length"));  // Get array length
-				result = Tcl_NewListObj(i, NULL);
+				JSValue lenVal = JS_GetPropertyStr(ctx, val, "length");  // Get array length
+				if (JS_ToUint32(ctx, &i, lenVal)) i = 0;
+				JS_FreeValue(ctx, lenVal);
+				result = Tcl_NewListObj(0, NULL);
 				for (uint32_t j = 0; j < i; j++) {  // Iterate through each element
 					JSValue e = JS_GetPropertyUint32(ctx, val, j);
 					Tcl_ListObjAppendElement(NULL, result, qjsValueToTcl(ctx, e));
@@ -557,7 +559,7 @@ static JSValue findOrCreateObject(QjsInterp *qjs, Tcl_Obj *pTclCmd)
         eventTargetInit(qjs, pObject->v);
 
 	 // Must use DefineProperty because Symbol.toStringTag is not Writable, Enumerable or Configurable.
-		if (JS_DefineProperty(qjs->ctx, pObject->v, JS_ATOM_Symbol_toStringTag, JS_UNDEFINED, JS_UNDEFINED, 
+		if (JS_DefinePropertyValue(qjs->ctx, pObject->v, JS_ATOM_Symbol_toStringTag, 
 			JS_NewString(qjs->ctx, 
 				Tcl_GetCommandName(interp, 
 					Tcl_GetCommandFromObj(interp, p->apWord[0])
@@ -1013,7 +1015,7 @@ static int interpGlobalSet(QjsInterp *qjs, Tcl_Obj *pProp, Tcl_Obj *pVal)
 {
 	if (pProp == NULL) {
 		QjsTclObject *w = JS_GetOpaque(qjs->global, QjsTclClassId);
-		Tcl_SetObjResult(qjs->interp, w->pObj);
+		Tcl_SetObjResult(qjs->interp, Tcl_DuplicateObj(w->pObj));
 	} else if (pVal == NULL) {
 		JSValue prop = JS_GetPropertyStr(qjs->ctx, qjs->global, Tcl_GetString(pProp));
 		Tcl_Obj *p = qjsValueToTcl(qjs->ctx, prop);
