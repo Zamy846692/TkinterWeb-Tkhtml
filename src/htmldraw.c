@@ -3464,12 +3464,18 @@ HtmlLayoutNode(
             return TCL_ERROR;
         }
 
-        /*
-        ** Really, we do not want to force a callback here. Particularly
-        ** since it causes a performance hit. But are the structures
-        ** intact enough to do layoutNodeCmd() if we do not?
-        */
-        /* HtmlCallbackForce(pTree); */
+        /* Run any pending style and/or layout operations before querying
+         * the display list. Until the idle callback runs, HtmlTree.canvas
+         * may still hold primitives whose pNode references a node already
+         * freed by "$node destroy". Walking those from
+         * layoutNodeCb() is a use-after-free: HtmlNodeIsOrphan() ends up
+         * dereferencing a recycled node's parent field.
+         *
+         * HtmlCallbackForce() is a no-op unless a callback is actually
+         * pending, so this costs nothing once the display list is up to
+         * date (i.e. it does not force a relayout on every mouse motion).
+         */
+        HtmlCallbackForce(pTree);
 
         /* Transform x and y from viewport to document coordinates */
         x += pTree->iScrollX;

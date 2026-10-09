@@ -941,7 +941,7 @@ TkPostscriptImage(
      */
 
     ncolors = visual->map_entries;
-    cdata.colors = ckalloc(sizeof(XColor) * ncolors);
+    cdata.colors = (XColor*)HtmlAlloc("TkPostscriptImage()", sizeof(XColor) * ncolors);
     cdata.ncolors = ncolors;
 
     if (visual->c_class == DirectColor || visual->c_class == TrueColor) {
