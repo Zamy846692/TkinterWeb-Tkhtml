@@ -306,7 +306,7 @@ HDR = $(GENHDR) $(SRCHDR)
 # The special targets to generate C code from tcl and lemon files are 
 # here:
 
-htmltokens.c:	$(srcdir)/src/tokenlist.txt
+htmltokens.c:	$(srcdir)/src/tokenlist.tcl
 	$(TCLSH) $?
 
 htmldefaultstyle.c: $(srcdir)/src/tkhtml.tcl  $(srcdir)/src/html.css \
