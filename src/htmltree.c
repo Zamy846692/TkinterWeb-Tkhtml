@@ -1859,6 +1859,10 @@ nodeRemoveCmd(
     return TCL_OK;
 }
 
+static void freeNodeProcCb(ClientData clientData){
+    HtmlNode *pNode = (HtmlNode *)clientData;
+    freeNode(pNode->pNodeCmd->pTree, pNode);
+}
 /*
  *---------------------------------------------------------------------------
  *
@@ -1902,8 +1906,7 @@ nodeDestroyCmd(
     } else {
         assert(!"TODO: Delete the root node?");
     }
-    
-    freeNode(pTree, pNode);
+    Tcl_DoWhenIdle(freeNodeProcCb, pNode);
 
     HtmlCheckRestylePoint(pTree);
     return TCL_OK;
