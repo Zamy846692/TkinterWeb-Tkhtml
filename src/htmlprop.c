@@ -1149,7 +1149,7 @@ dumpColorTable (HtmlTree *pTree)
     ) {
         HtmlColor *pColor = Tcl_GetHashValue(pEntry);
         printf("%s -> {%s (%d) %p}\n", 
-            Tcl_GetHashKey(&pTree->aColor, pEntry), 
+            (char*)Tcl_GetHashKey(&pTree->aColor, pEntry), 
             pColor->zColor, pColor->nRef, pColor->xcolor
         );
         iRet++;
@@ -3337,8 +3337,7 @@ HtmlComputedValuesCompare (HtmlComputedValues *pV1, HtmlComputedValues *pV2)
         pV1->imReplacementImage != pV2->imReplacementImage ||
         pV1->imListStyleImage != pV2->imListStyleImage     ||
         pV1->fFont != pV2->fFont ||
-        pV1->eVerticalAlign != pV2->eVerticalAlign ||
-        (!pV1->eVerticalAlign && pV1->iVerticalAlign != pV1->iVerticalAlign)
+        pV1->eVerticalAlign != pV2->eVerticalAlign
     ) {
         return HTML_REQUIRE_LAYOUT;
     }

@@ -2142,8 +2142,7 @@ styleCmd(
         {SWPROC_END, 0, 0, 0}
     };
     Tcl_Obj *apObj[5];
-    int rc = TCL_OK;
-    unsigned int n;
+    int n, rc = TCL_OK;
     HtmlTree *pTree = (HtmlTree *)clientData;
 
     /* First assert() that the sizes of the aConf and apObj array match. Then

@@ -2566,12 +2566,6 @@ HtmlDrawSnapshotDamage (HtmlTree *pTree, HtmlCanvasSnapshot *pSnapshot, HtmlCanv
     int iNewLevel = 0; int iNewItem = 0;
     int iOldLevel = 0; int iOldItem = 0;
 
-    int iCreated = 0;
-    int iDeleted = 0;
-    int iDirty = 0;
-    int iMoved = 0;
-    int iStuck = 0;
-
     int x1 = 100000; 
     int y1 = 100000; 
     int x2 = 0;
@@ -2598,37 +2592,29 @@ HtmlDrawSnapshotDamage (HtmlTree *pTree, HtmlCanvasSnapshot *pSnapshot, HtmlCanv
             if (newx != pOldSlot->x || newy != pOldSlot->y) {
                 damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
                 damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-                iMoved++;
             } else {
                 HtmlNode *pNode = itemToNode(pNewSlot->pItem);
                 if (pNode && pNode->iSnapshot == pOld->iSnapshot) {
                     damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-                    iDirty++;
-                } else {
-                    iStuck++;
                 }
             }
             pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
             pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
         } else if (pNewSlot->pItem->iSnapshot == pOld->iSnapshot) {
             damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
-            iDeleted++;
             pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
         } else {
             damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-            iCreated++;
             pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
         }
     }
 
     while (pNewSlot) {
         damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-        iCreated++;
         pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
     }
     while (pOldSlot) {
         damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
-        iDeleted++;
         pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
     }
 
