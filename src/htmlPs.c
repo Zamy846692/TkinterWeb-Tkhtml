@@ -170,7 +170,7 @@ int HtmlPostscript(
 {
     TkPostscriptInfo psInfo, *pPsInfo = &psInfo;
     Tk_PostscriptInfo oldInfoPtr;
-    int result, oldwidth;
+    int result, oldwidth = 0;
     const char *p;
     time_t now;
     HtmlTree *pTree = (HtmlTree *)clientData;
@@ -183,7 +183,7 @@ int HtmlPostscript(
     int deltaX = 0, deltaY = 0;    /* Offset of lower-left corner of area to be
                  * marked up, measured in canvas units from the positioning point on the page (reflects
                  * anchor position). Initial values needed only to stop compiler warnings. */
-    Html_u8 nographics, oldforcewidth;
+    Html_u8 nographics, oldforcewidth = 0;
     double pagestotal;
 
     /*
@@ -1373,12 +1373,11 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
         if (fill_quadPs(interp, psInfo, psObj, oc, x+w, y2, 0, h, -ow, 0, 0, -h) != TCL_OK) goto error;
     }
     // Plug the accumulated postscript back into the result.
-    done:
-        (void) Tcl_RestoreInterpState(interp, interpState);
-        tmp = GetPostscriptBuffer(interp);
-        Tcl_AppendObjToObj(tmp, psObj);
-        Tcl_DecrRefCount(psObj);
-        return TCL_OK;
+    (void) Tcl_RestoreInterpState(interp, interpState);
+    tmp = GetPostscriptBuffer(interp);
+    Tcl_AppendObjToObj(tmp, psObj);
+    Tcl_DecrRefCount(psObj);
+    return TCL_OK;
 
     error:
         Tcl_DiscardInterpState(interpState);
