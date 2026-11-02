@@ -1022,7 +1022,7 @@ normalFlowLayoutFloat (
     if (pLayout->minmaxTest) {
         eFloat = CSS_CONST_LEFT;
     }
-
+    paginationPageYOffset(pLayout, pV->ePageBreakBefore, pY);
     /* The following two lines set variable 'y' to the y-coordinate for the top
      * outer-edge of the floating box. This might be increased (but not
      * decreased) if the existing floating-margins at y are too narrow for this
@@ -1044,7 +1044,6 @@ normalFlowLayoutFloat (
     y = HtmlFloatListClear(pNormal->pFloat, pV->eClear, y);
     y = HtmlFloatListClearTop(pNormal->pFloat, y);
 
-    paginationPageYOffset(pLayout, pV->ePageBreakBefore, pY);
     nodeGetMargins(pLayout, pNode, iContainingW, &margin);
 
     /* The code that calculates computed values (htmlprop.c) should have
@@ -1057,8 +1056,6 @@ normalFlowLayoutFloat (
     assert(eFloat == CSS_CONST_LEFT || eFloat == CSS_CONST_RIGHT);
 
   REDO: // This part of the function is rerun once in order to get the height for the second pass
-    if (i) HtmlDrawCleanup(pLayout->pTree, &sBox.vc);
-
     memset(&sBox, 0, sizeof(BoxContext));
     sBox.iContainingW = iContainingW;
 
@@ -1082,7 +1079,7 @@ normalFlowLayoutFloat (
         int c = pLayout->minmaxTest ? PIXELVAL_AUTO : iContainingW;
         int iWidth = PIXELVAL(pV, WIDTH, c);
         int iHeight = PIXELVAL(pV, HEIGHT, pBox->iContainingH);
-        unsigned char mmt, isAuto = 0;
+        unsigned char mmt = pLayout->minmaxTest, isAuto = 0;
 
         nodeGetBoxProperties(pLayout, pNode, iContainingW, &box);
 
@@ -1108,11 +1105,7 @@ normalFlowLayoutFloat (
         memset(&sContent, 0, sizeof(BoxContext));
         sContent.iContainingW = iWidth;
         sContent.iContainingH = iHeight;
-		paginationPageYOrigin(box.iTop, pLayout);
-		if (pLayout->pTree->options.pagination && !i) {
-			mmt = pLayout->minmaxTest;
-			pLayout->minmaxTest = 1;
-		}
+		if (pLayout->pTree->options.pagination && !i) pLayout->minmaxTest = 1;
         HtmlLayoutNodeContent(pLayout, &sContent, pNode);
 
         iHeight = getHeight(pNode, sContent.height, pBox->iContainingH);
@@ -1129,7 +1122,6 @@ normalFlowLayoutFloat (
         considerMinMaxWidth(pNode, iContainingW, &sContent.width);
 
         wrapContent(pLayout, &sBox, &sContent, pNode);
-		paginationPageYOrigin(-box.iTop, pLayout);
 		if (pLayout->pTree->options.pagination && !i) pLayout->minmaxTest = mmt;
     }
 	paginationPageYOrigin(-y, pLayout);
@@ -1146,16 +1138,14 @@ normalFlowLayoutFloat (
 
 	if (pLayout->pTree->options.pagination && 0<i) iTop -= margin.margin_top; // On 2nd run
     y = iTop + margin.margin_top;
-	if (pLayout->pTree->options.pagination) {
-		i++;
-		if (1 == i) goto REDO; // If the document is paginated; go back and reexecute after finding the box height
-	}
+	if (pLayout->pTree->options.pagination && ++i == 1) goto REDO; // If the document is paginated; go back and reexecute after finding the box height
     if (eFloat == CSS_CONST_LEFT) {
         x = iLeft;
     } else {
         x = iRight - iTotalWidth;
     }
     y = paginationOffsetInside(pLayout, pNode, pV, pY, y, iTotalHeight);
+	if (pLayout->pTree->options.pagination) iTop = y - margin.margin_top;
     DRAW_CANVAS(&pBox->vc, &sBox.vc, x, y, pNode); // This controls the CanvasOrigin Y-axis for CSS float
     paginationPageYOffset(pLayout, pV->ePageBreakAfter, pY);
 
