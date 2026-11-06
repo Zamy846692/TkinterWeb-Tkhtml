@@ -266,7 +266,7 @@ static inline Tcl_Obj *stringToObj(JSContext *ctx, JSValue str){
 static Tcl_Obj *qjsValueToTcl(JSContext *ctx, JSValue val) {
     Tcl_Obj *result;
 	int i;
-    switch (JS_VALUE_GET_TAG(val)) {
+    switch (JS_VALUE_GET_NORM_TAG(val)) {
         case JS_TAG_UNDEFINED: case JS_TAG_NULL:
             result = Tcl_NewObj();  // In Tcl, the closest equivalent to null is typically an empty string
             break;
@@ -1236,7 +1236,7 @@ static JSRuntime *runtime = NULL;
  */
 static int tclQjsInterp(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    char zCmd[64];
+    char zCmd[64], ret;
     QjsInterp *qjs;
     if (objc != 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "GLOBAL-OBJCOMMAND");
@@ -1253,11 +1253,12 @@ static int tclQjsInterp(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *co
 	Tcl_InitHashTable(&qjs->objects, TCL_STRING_KEYS);
 	JS_SetRuntimeOpaque(runtime, interp);
 	JS_SetContextOpaque(qjs->ctx, (ContextOpaque*)qjs);
-	
+
 	JSValue Global = JS_GetGlobalObject(qjs->ctx);
 	eventTargetGlobalInit(qjs, Global);  // This must be done BEFORE any Tcl-JS objects are created
 	qjs->global = findOrCreateObject(qjs, Tcl_IsShared(objv[1])?Tcl_DuplicateObj(objv[1]):objv[1]);
-	assert(1 == JS_SetPrototype(qjs->ctx, Global, qjs->global));
+	ret = JS_SetPrototype(qjs->ctx, Global, qjs->global);
+	assert(ret > 0);
     /* Initialize the object's event subsystem */
 	interpTimeoutInit(qjs->ctx, Global);
 	JS_FreeValue(qjs->ctx, Global);
