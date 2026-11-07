@@ -39,7 +39,7 @@ SHARED_LIB = $(SHARED_LIB_$(BUILD))
 # 
 #         $(MKSHLIB) $(OBJS) $(TCLSTUBSLIB) -o $(SHARED_LIB)
 #
-MKSHLIB = $(CC) -shared 
+MKSHLIB = $(CC) -shared -static-libgcc -static-libstdc++
 TCLSTUBSLIB =  "$(TCL)/lib/libtclstub$(TCLVERSION).a" 
 TCLSTUBSLIB += "$(TCL)/lib/libtkstub$(TCLVERSION).a" 
 TCLSTUBSLIB += -LC:/Tcl/lib
@@ -62,7 +62,7 @@ MKSTARKIT = $(STARKITRT) /home/billa/sdx.kit wrap
 #
 JS_SHARED_LIB = libTclqjs.dll
 
-JSLIB   = /home/billa/quickjs/libquickjs.a
+JSLIB   = /home/billa/quickjs/libquickjs.a $(TCL)/lib/libwinpthread.a
 JSFLAGS = -I/home/billa/quickjs
 
 #

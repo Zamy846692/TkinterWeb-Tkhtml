@@ -170,7 +170,7 @@ int HtmlPostscript(
 {
     TkPostscriptInfo psInfo, *pPsInfo = &psInfo;
     Tk_PostscriptInfo oldInfoPtr;
-    int result, oldwidth;
+    int result, oldwidth = 0;
     const char *p;
     time_t now;
     HtmlTree *pTree = (HtmlTree *)clientData;
@@ -183,7 +183,7 @@ int HtmlPostscript(
     int deltaX = 0, deltaY = 0;    /* Offset of lower-left corner of area to be
                  * marked up, measured in canvas units from the positioning point on the page (reflects
                  * anchor position). Initial values needed only to stop compiler warnings. */
-    Html_u8 nographics, oldforcewidth;
+    Html_u8 nographics, oldforcewidth = 0;
     double pagestotal;
 
     /*
@@ -281,7 +281,7 @@ int HtmlPostscript(
     
     if (psInfo.pageMode != NULL) {
         const unsigned int pageLen = strlen(psInfo.pageMode);
-        char wStr[pageLen/2-1], hStr[pageLen/2-1], buffer[pageLen]; // Sufficient size to hold
+        char wStr[pageLen], hStr[pageLen], buffer[pageLen+1];
         double tempWidth, tempHeight;
         
         if (!strnicmp(psInfo.pageMode, "window", 6)) {
@@ -319,6 +319,12 @@ int HtmlPostscript(
         getPageCentre(pPsInfo);
         
         pTree->options.pagination = SCALEDHEIGHT(pPsInfo);
+        /* Adjust scale so layout pages align exactly with PostScript pages.
+         * Otherwise page_h*scale != pageSize.height causes a small per-page
+         * error that accumulates, making bottom lines leak increasingly. */
+        if (pTree->options.pagination > 0) {
+            pPsInfo->scale = (double)psInfo.pageSize.height / (double)pTree->options.pagination;
+        }
 		oldforcewidth = pTree->options.forcewidth;
         pTree->options.forcewidth = 1; /* If a page size has been set, make sure layout width is set to it. */
 		oldwidth = pTree->options.width;
@@ -721,8 +727,8 @@ static inline Tcl_Obj *GetPostscriptBuffer(Tcl_Interp *interp)
     Tcl_Obj *psObj = Tcl_GetObjResult(interp);
 
     if (Tcl_IsShared(psObj)) {
-    psObj = Tcl_DuplicateObj(psObj);
-    Tcl_SetObjResult(interp, psObj);
+		psObj = Tcl_DuplicateObj(psObj);
+		Tcl_SetObjResult(interp, psObj);
     }
     return psObj;
 }
@@ -750,7 +756,7 @@ static int fill_quadPs(
     return TCL_OK;
 }
 
-static int fill_rectanglePs(
+static inline int fill_rectanglePs(
     Tcl_Interp *interp,
     Tk_PostscriptInfo psInfo,
     Tcl_Obj *psObj,
@@ -935,7 +941,7 @@ TkPostscriptImage(
      */
 
     ncolors = visual->map_entries;
-    cdata.colors = ckalloc(sizeof(XColor) * ncolors);
+    cdata.colors = (XColor*)HtmlAlloc("TkPostscriptImage()", sizeof(XColor) * ncolors);
     cdata.ncolors = ncolors;
 
     if (visual->c_class == DirectColor || visual->c_class == TrueColor) {
@@ -1152,9 +1158,10 @@ int TextToPostscript(Tk_PostscriptInfo psInfo, const char *z, int n, int x, int 
     if (prepass) goto done;
 
     Tcl_ResetResult(interp);
-    if (Tk_PostscriptColor(interp, psInfo, pV->cColor->xcolor) != TCL_OK) goto error;
-    Tcl_AppendObjToObj(psObj, Tcl_GetObjResult(interp));
-    
+    if (pV->cColor->xcolor) {
+        if (Tk_PostscriptColor(interp, psInfo, pV->cColor->xcolor) != TCL_OK) goto error;
+        Tcl_AppendObjToObj(psObj, Tcl_GetObjResult(interp));
+    }
     switch (pV->eTextAlign) {
         case CSS_CONST_CENTER: anchor = 1/6; justify = "0";  break;
         case CSS_CONST_RIGHT:  anchor = 1/3; justify = "1";  break;
@@ -1178,7 +1185,7 @@ int TextToPostscript(Tk_PostscriptInfo psInfo, const char *z, int n, int x, int 
     // Plug the accumulated postscript back into the result.
     done:
         (void) Tcl_RestoreInterpState(interp, interpState);
-        Tcl_AppendObjToObj(Tcl_GetObjResult(interp), psObj);
+        Tcl_AppendObjToObj(GetPostscriptBuffer(interp), psObj);
         Tcl_DecrRefCount(psObj);
         return TCL_OK;
 
@@ -1212,7 +1219,7 @@ int ImageToPostscript(HtmlTree *pTree, HtmlImage2 *pImage, int x, int y, int pre
     Tk_PostscriptInfo psInfo = pTree->psInfo;
     int w, h;
 
-    if (pImage == NULL) { /* Image item without actual image specified. */
+    if (pImage == NULL || !HtmlImageIsValid(pImage)) { /* Image item without actual image specified. */
         return TCL_OK;
     }
     HtmlImageSize(pImage, &w, &h);
@@ -1252,25 +1259,18 @@ int ImageToPostscript(HtmlTree *pTree, HtmlImage2 *pImage, int x, int y, int pre
  */
 int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, HtmlNode *pNode, int f, Tcl_Interp *interp, HtmlComputedValues *pV)
 {
-    Tcl_Obj *psObj;
+    Tcl_Obj *psObj, *tmp;
     double y1, y2;
     Tcl_InterpState interpState;
     Tk_PostscriptInfo psInfo = pTree->psInfo;
 
     y1 = Tk_PostscriptY(y, psInfo);
     y2 = Tk_PostscriptY(y + h, psInfo);
-    
+
     // Make our working space.
     psObj = Tcl_NewObj();
     interpState = Tcl_SaveInterpState(interp, TCL_OK);
-    
-    // Generate a string that creates a path for the solid background, if required.
-    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->cBackgroundColor->xcolor) {
-        // First draw the filled area of the rectangle.
-        if (fill_rectanglePs(interp, psInfo, psObj, pV->cBackgroundColor->xcolor,
-            x, y1, y2 - y1, w
-        ) != TCL_OK) goto error;
-    }
+
     /* Figure out the widths of the top, bottom, right and left borders */
     int tw = ((pV->eBorderTopStyle != CSS_CONST_NONE) ? pV->border.iTop :0);
     int bw = ((pV->eBorderBottomStyle != CSS_CONST_NONE) ? pV->border.iBottom :0);
@@ -1289,7 +1289,14 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
     XColor *bc = pV->cBorderBottomColor->xcolor;
     XColor *lc = pV->cBorderLeftColor->xcolor;
     XColor *oc = pV->cOutlineColor->xcolor;
-    
+
+// Generate a string that creates a path for the solid background, if required.
+    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->cBackgroundColor->xcolor) {
+        // First draw the filled area of the rectangle.
+        if (fill_rectanglePs(interp, psInfo, psObj, pV->cBackgroundColor->xcolor,
+            x, y1, y2 - y1, w
+        ) != TCL_OK) goto error;
+    }
     if (0 == (f & DRAWBOX_NOBORDER)) {
         if (tw > 0 && tc) {  /* Top border */
             if (fill_quadPs(interp, psInfo, psObj, tc,
@@ -1312,7 +1319,7 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
             ) != TCL_OK) goto error;
         }
     }
-    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->imZoomedBackgroundImage) { /* Image background, if required. */
+    if (0 == (f & DRAWBOX_NOBACKGROUND) && pV->imZoomedBackgroundImage && HtmlImageIsValid(pV->imZoomedBackgroundImage)) {
         int iWidth, iHeight, eR = pV->eBackgroundRepeat;
         HtmlImageSize(pV->imZoomedBackgroundImage, &iWidth, &iHeight);
 
@@ -1320,7 +1327,7 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
             int iPosX = pV->iBackgroundPositionX;
             int iPosY = pV->iBackgroundPositionY;
 
-			if (pV->eBackgroundAttachment == CSS_CONST_SCROLL) {
+            if (pV->eBackgroundAttachment == CSS_CONST_SCROLL) {
                 if (pV->mask & PROP_MASK_BACKGROUND_POSITION_X)
                     iPosX = (double)iPosX * (double)(bg_w - iWidth) / 10000.0;
                 if (pV->mask & PROP_MASK_BACKGROUND_POSITION_Y)
@@ -1341,7 +1348,7 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
                 int draw_x2 = MIN(bg_x + bg_w, iPosX + iWidth);
                 bg_x = draw_x1;
                 bg_w = draw_x2 - draw_x1;
-            } 
+            }
             if (eR != CSS_CONST_REPEAT && eR != CSS_CONST_REPEAT_Y) {
                 int draw_y1 = MAX(bg_y, iPosY);
                 int draw_y2 = MIN(bg_y + bg_h, iPosY + iHeight);
@@ -1360,17 +1367,17 @@ int BoxToPostscript(HtmlTree *pTree, int x, int y, int w, int h, int prepass, Ht
         }
     }
     if (ow > 0 && oc) {  /* Outline, if required */
-        fill_quadPs(interp, psInfo, psObj, oc, x, y2, w, 0, 0, ow, -w, 0);
-        fill_quadPs(interp, psInfo, psObj, oc, x, y2+h, w, 0, 0, -ow, -w, 0);
-        fill_quadPs(interp, psInfo, psObj, oc, x, y2, 0, h, ow, 0, 0, -h);
-        fill_quadPs(interp, psInfo, psObj, oc, x+w, y2, 0, h, -ow, 0, 0, -h);
+        if (fill_quadPs(interp, psInfo, psObj, oc, x, y2, w, 0, 0, ow, -w, 0) != TCL_OK) goto error;
+        if (fill_quadPs(interp, psInfo, psObj, oc, x, y2+h, w, 0, 0, -ow, -w, 0) != TCL_OK) goto error;
+        if (fill_quadPs(interp, psInfo, psObj, oc, x, y2, 0, h, ow, 0, 0, -h) != TCL_OK) goto error;
+        if (fill_quadPs(interp, psInfo, psObj, oc, x+w, y2, 0, h, -ow, 0, 0, -h) != TCL_OK) goto error;
     }
     // Plug the accumulated postscript back into the result.
-    done:
-        (void) Tcl_RestoreInterpState(interp, interpState);
-        Tcl_AppendObjToObj(Tcl_GetObjResult(interp), psObj);
-        Tcl_DecrRefCount(psObj);
-        return TCL_OK;
+    (void) Tcl_RestoreInterpState(interp, interpState);
+    tmp = GetPostscriptBuffer(interp);
+    Tcl_AppendObjToObj(tmp, psObj);
+    Tcl_DecrRefCount(psObj);
+    return TCL_OK;
 
     error:
         Tcl_DiscardInterpState(interpState);
@@ -1398,7 +1405,7 @@ int LineToPostscript(Tk_PostscriptInfo psInfo, int x, int y, int w, int y_lineth
 {
     Tcl_InterpState interpState = Tcl_SaveInterpState(interp, TCL_OK);
     XColor *xcolor;
-    Tcl_Obj *psObj = Tcl_NewObj();
+    Tcl_Obj *psObj = Tcl_NewObj(), *tmp;
     int yrel;
 
     switch (HtmlNodeComputedValues(pNode)->eTextDecoration) {
@@ -1427,7 +1434,8 @@ int LineToPostscript(Tk_PostscriptInfo psInfo, int x, int y, int w, int y_lineth
 
     done:
         (void) Tcl_RestoreInterpState(interp, interpState);
-        Tcl_AppendObjToObj(Tcl_GetObjResult(interp), psObj);
+        tmp = GetPostscriptBuffer(interp);
+        Tcl_AppendObjToObj(tmp, psObj);
         Tcl_DecrRefCount(psObj);
         return TCL_OK;
 
@@ -1514,8 +1522,10 @@ int WinItemToPostscript(HtmlTree *pTree, int x, int y, Tk_Window win, int prepas
     /* Plug the accumulated postscript back into the result. */
     done:
         if (result == TCL_OK) {
+            Tcl_Obj *tmp;
             (void) Tcl_RestoreInterpState(interp, interpState);
-            Tcl_AppendObjToObj(Tcl_GetObjResult(interp), psObj);
+            tmp = GetPostscriptBuffer(interp);
+            Tcl_AppendObjToObj(tmp, psObj);
         } else {
             Tcl_DiscardInterpState(interpState);
         }

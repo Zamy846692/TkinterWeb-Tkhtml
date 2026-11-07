@@ -58,6 +58,9 @@ static void timeoutCb(ClientData clientData) {
          * timeout).
          */
         if (p->interval <= NO_INTERVAL) {
+            /* One-shot timer has fired; clear the (now stale) token so
+             * delTimeout() actually releases func/args. */
+            p->token = NULL;
             delTimeout(p);
         } else {
             ClientData c = (ClientData)p;
@@ -90,7 +93,7 @@ static JSValue newTimer(
     p = js_malloc(ctx, sizeof(*p));
     p->func = JS_DupValue(ctx, argv[0]);
 	
-	const uint8_t OFF = 1 + JS_IsNumber(argv[1]);
+	const uint8_t OFF = 1 + (argc > 1 && JS_IsNumber(argv[1]));
 	if (argc > OFF) {
 		p->nArg = argc - OFF;
 		p->apArg = js_malloc(ctx, sizeof(JSValue)*p->nArg);
@@ -137,6 +140,7 @@ static JSValue cancelTimer(
             break;
         }
     }
+    return JS_UNDEFINED;
 }
 
 static JSValue setTimeoutFunc(JSContext *ctx, JSValueConst this, int argc, JSValueConst *argv)
@@ -149,11 +153,11 @@ static JSValue setIntervalFunc(JSContext *ctx, JSValueConst this, int argc, JSVa
 }
 static JSValue clearTimeoutFunc(JSContext *ctx, JSValueConst this, int argc, JSValueConst *argv)
 {
-    cancelTimer(ctx, this, 0, argc, argv);
+    return cancelTimer(ctx, this, 0, argc, argv);
 }
 static JSValue clearIntervalFunc(JSContext *ctx, JSValueConst this, int argc, JSValueConst *argv)
 {
-    cancelTimer(ctx, this, 1, argc, argv);
+    return cancelTimer(ctx, this, 1, argc, argv);
 }
 
 static void interpTimeoutInit(JSContext *ctx, JSValue g) {

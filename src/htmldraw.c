@@ -2458,7 +2458,6 @@ searchCanvas(
                 }
                 break;
             }
-
             case CANVAS_MARKER: {
                 if(pItem->c.marker.flags == MARKER_FIXED){
                     assert(bSeenFixedMarker == 0);
@@ -2471,7 +2470,6 @@ searchCanvas(
                 }
                 break;
             }
-
             case CANVAS_OVERFLOW: {
                 if (requireOverflow) {
                     Overflow *pOverflow = (Overflow *)&pItem[1];
@@ -2506,7 +2504,6 @@ searchCanvas(
                 }
                 break;
             }
-           
             default: {
                 Overflow *pOver = 0;
 
@@ -2535,7 +2532,6 @@ searchCanvas(
                 break;
             }
         }
-
         /* Check if we are supposed to pop the overflow stack */
         while (iOverflow >= 0 && pItem == apOverflow[iOverflow]->pItem->pEnd) {
             iOverflow--;
@@ -2799,12 +2795,6 @@ HtmlDrawSnapshotDamage (HtmlTree *pTree, HtmlCanvasSnapshot *pSnapshot, HtmlCanv
     int iNewLevel = 0; int iNewItem = 0;
     int iOldLevel = 0; int iOldItem = 0;
 
-    int iCreated = 0;
-    int iDeleted = 0;
-    int iDirty = 0;
-    int iMoved = 0;
-    int iStuck = 0;
-
     int x1 = 100000; 
     int y1 = 100000; 
     int x2 = 0;
@@ -2831,37 +2821,29 @@ HtmlDrawSnapshotDamage (HtmlTree *pTree, HtmlCanvasSnapshot *pSnapshot, HtmlCanv
             if (newx != pOldSlot->x || newy != pOldSlot->y) {
                 damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
                 damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-                iMoved++;
             } else {
                 HtmlNode *pNode = itemToNode(pNewSlot->pItem);
                 if (pNode && pNode->iSnapshot == pOld->iSnapshot) {
                     damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-                    iDirty++;
-                } else {
-                    iStuck++;
                 }
             }
             pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
             pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
         } else if (pNewSlot->pItem->iSnapshot == pOld->iSnapshot) {
             damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
-            iDeleted++;
             pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
         } else {
             damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-            iCreated++;
             pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
         }
     }
 
     while (pNewSlot) {
         damageSlot(pTree, pNewSlot, &x1, &y1, &x2, &y2, 0);
-        iCreated++;
         pNewSlot = nextItem(pNew, &iNewLevel, &iNewItem);
     }
     while (pOldSlot) {
         damageSlot(pTree, pOldSlot, &x1, &y1, &x2, &y2, 1);
-        iDeleted++;
         pOldSlot = nextItem(pOld, &iOldLevel, &iOldItem);
     }
 
@@ -3697,12 +3679,18 @@ HtmlLayoutNode(
             return TCL_ERROR;
         }
 
-        /*
-        ** Really, we do not want to force a callback here. Particularly
-        ** since it causes a performance hit. But are the structures
-        ** intact enough to do layoutNodeCmd() if we do not?
-        */
-        /* HtmlCallbackForce(pTree); */
+        /* Run any pending style and/or layout operations before querying
+         * the display list. Until the idle callback runs, HtmlTree.canvas
+         * may still hold primitives whose pNode references a node already
+         * freed by "$node destroy". Walking those from
+         * layoutNodeCb() is a use-after-free: HtmlNodeIsOrphan() ends up
+         * dereferencing a recycled node's parent field.
+         *
+         * HtmlCallbackForce() is a no-op unless a callback is actually
+         * pending, so this costs nothing once the display list is up to
+         * date (i.e. it does not force a relayout on every mouse motion).
+         */
+        HtmlCallbackForce(pTree);
 
         /* Transform x and y from viewport to document coordinates */
         x += pTree->iScrollX;
@@ -4512,7 +4500,7 @@ static int HtmlPostscriptCb(
         }
         default: goto done;
     }
-    if (pPrint->prepass || !strlen(Tcl_GetStringResult(pPrint->interp))) goto done;
+    if (rc == TCL_ERROR || pPrint->prepass || !strlen(Tcl_GetStringResult(pPrint->interp))) goto done;
     Tcl_AppendToObj(pPrint->psObj, "gsave\n", -1);
     Tcl_AppendObjToObj(pPrint->psObj, Tcl_GetObjResult(pPrint->interp));
     Tcl_AppendToObj(pPrint->psObj, "grestore\n", -1);

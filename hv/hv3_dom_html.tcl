@@ -443,9 +443,9 @@ namespace eval ::hv3::DOM {
     # references to them. The solution should be the same as the
     # HTMLElement.removeChild() function.
     #
-    ### foreach child $children {
-    ###  $child destroy
-    ### }
+    foreach child $children {
+      $child destroy
+    }
 
     # Insert the new descendants, created by parsing $newHtml.
     set children [[$node html] fragment $newHtml]

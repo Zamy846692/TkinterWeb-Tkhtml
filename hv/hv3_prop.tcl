@@ -429,6 +429,8 @@ snit::widget ::hv3::debug::LogReport {
     pack ${win}.button -fill x -side bottom
     pack ${win}.hv3 -fill both -expand 1
 
+    bind $myHv3 <Button-1> [list focus $myHv3]
+
     $self configurelist $args
   }
 

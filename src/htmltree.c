@@ -179,13 +179,30 @@ clearReplacement (HtmlTree *pTree, HtmlElementNode *pElem)
     HtmlNodeReplacement *p = pElem->pReplacement;
     pElem->pReplacement = 0;
     if (p) {
-
         /* Cancel any idle callback scheduled by geomRequestProc() */
         Tcl_CancelIdleCall(geomRequestProcCb, (ClientData)pElem);
 
-        /* If there is a delete script, invoke it now. */
+        /* If there is a delete script, invoke it now. Except when the
+         * widget itself is being deleted: running arbitrary scripts from
+         * within freeNode() risks re-entrant access to the partially
+         * freed document tree. In that case schedule the script to run
+         * at an idle moment via [after idle] instead. If the interp is
+         * deleted before the callback fires, Tcl cancels it automatically.
+         */
         if (p->pDelete) {
-            Tcl_EvalObjEx(pTree->interp, p->pDelete, TCL_EVAL_DIRECT|TCL_EVAL_GLOBAL);
+            if (!Tcl_InterpDeleted(pTree->interp)) {
+                if (pTree->isDeleted) {
+                    Tcl_Obj *pWrap = Tcl_NewStringObj("after idle", 10);
+                    Tcl_IncrRefCount(pWrap);
+                    Tcl_ListObjAppendElement(pTree->interp, pWrap, p->pDelete);
+                    Tcl_EvalObjEx(pTree->interp, pWrap, TCL_EVAL_DIRECT|TCL_EVAL_GLOBAL);
+                    Tcl_DecrRefCount(pWrap);
+                } else if (Tcl_EvalObjEx(pTree->interp, p->pDelete, 
+                    TCL_EVAL_DIRECT|TCL_EVAL_GLOBAL) != TCL_OK) {
+                    Tcl_BackgroundException(pTree->interp, TCL_ERROR);
+                }
+            }
+            Tcl_DecrRefCount(p->pDelete);
         }
 
         /* Remove any entry from the HtmlTree.pMapped list. */
@@ -208,7 +225,6 @@ clearReplacement (HtmlTree *pTree, HtmlElementNode *pElem)
         }
 
         /* Delete the Tcl_Obj's and the structure itself. */
-        if (p->pDelete)       { Tcl_DecrRefCount(p->pDelete); }
         if (p->pReplace)      { Tcl_DecrRefCount(p->pReplace); }
         if (p->pConfigureCmd) { Tcl_DecrRefCount(p->pConfigureCmd); }
         HtmlFree(p);
@@ -1843,6 +1859,10 @@ nodeRemoveCmd(
     return TCL_OK;
 }
 
+static void freeNodeProcCb(ClientData clientData){
+    HtmlNode *pNode = (HtmlNode *)clientData;
+    freeNode(pNode->pNodeCmd->pTree, pNode);
+}
 /*
  *---------------------------------------------------------------------------
  *
@@ -1886,8 +1906,7 @@ nodeDestroyCmd(
     } else {
         assert(!"TODO: Delete the root node?");
     }
-    
-    freeNode(pTree, pNode);
+    Tcl_DoWhenIdle(freeNodeProcCb, pNode);
 
     HtmlCheckRestylePoint(pTree);
     return TCL_OK;
@@ -2087,6 +2106,13 @@ nodeTextCommand(
         /* Set the node to contain the new text */
         zNew = Tcl_GetStringFromObj(objv[3], &nNew);
         HtmlTextSet(pOrig, nNew, zNew, 0, 0);
+
+        /* HtmlTextSet may reallocate (or reuse in place) the text buffer
+         * that existing canvas items and the previous snapshot reference,
+         * hiding the content change from the snapshot diff. Mark the node
+         * dirty so the diff schedules a repaint.
+         */
+        HtmlCallbackDamageNode(pTree, pNode);
 
     } else if (eChoice == NODE_TEXT_PRE) {
         pRet = nodeGetPreText(HtmlNodeAsText(pNode));
@@ -2699,9 +2725,19 @@ node_attr_usage:
          *
          */
         case NODE_INSERT: {
+            int rc;
             HtmlCallbackRestyle(pTree, pNode);
             HtmlCallbackLayout(pTree, pNode);
-            return nodeInsertCmd(pNode, objc, objv);
+            rc = nodeInsertCmd(pNode, objc, objv);
+            if (rc == TCL_OK) {
+                /* Newly inserted nodes may reuse the canvas text buffers of
+                 * destroyed nodes (allocator address reuse), so the snapshot
+                 * diff cannot detect their content change by pointer
+                 * comparison. Mark the subtree dirty so the diff damages it.
+                 */
+                HtmlCallbackDamageNode(pTree, pNode);
+            }
+            return rc;
         }
 
         /*

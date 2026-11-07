@@ -34,6 +34,8 @@ struct LayoutContext {
 
     int minmaxTest;          /* Currently figuring out min/max widths */
 
+    unsigned int paginationOrigin; /* Accumulated Y offset for pagination */
+
     NodeListLink *pAbsolute;     /* List of nodes with "absolute" 'position' */
     NodeListLink *pFixed;        /* List of nodes with "fixed" 'position' */
 };
@@ -151,7 +153,7 @@ int HtmlTableLayout(LayoutContext*, BoxContext*, HtmlNode*);
 int HtmlLayoutNodeContent(LayoutContext *, BoxContext *, HtmlNode *);
 
 void HtmlLayoutDrawBox(HtmlTree*,HtmlCanvas*,int,int,int,int,HtmlNode*,int,int);
-int paginationPageYOrigin(int, LayoutContext*);
+void paginationPageYOrigin(int, LayoutContext*);
 
 /*
  *---------------------------------------------------------------------------

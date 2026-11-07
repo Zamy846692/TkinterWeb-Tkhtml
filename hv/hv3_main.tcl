@@ -595,6 +595,8 @@ namespace eval ::hv3::printing {
 
     ::hv3::button .new.save -text "Output" -command [list ::hv3::printing::save]
 
+    bind .new <Key-Return> [list ::hv3::printing::save]
+
     grid .new.label      -row 0 -column 0 -columnspan 4 -sticky ewn -padx 10 -pady {10 5}
     grid .new.select     -row 1 -column 3 -sticky e -padx 10 -pady 5
     grid .new.l_pagesize -row 2 -column 0 -columnspan 4 -sticky ew  -padx 10 -pady 5

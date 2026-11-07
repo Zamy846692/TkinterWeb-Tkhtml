@@ -3545,7 +3545,7 @@ HtmlCssStyleSheetApply (HtmlTree *pTree, HtmlNode *pNode)
 
         while (
             nRule < (MAX_CLASSES + 2) &&
-            (zClass = HtmlCssGetNextListItem(zClass, strlen(zClass), &nClass))
+            (zClass = HtmlCssGetNextListItem(zClass, strlen(zClass), (int*)&nClass))
         ) {
             strncpy(zTerm, zClass, MIN(MAX_CLASS_NAME, nClass));
             zTerm[MIN(MAX_CLASS_NAME - 1, nClass)] = '\0';
@@ -3882,13 +3882,13 @@ void HtmlCssQueryToString(CssRule *pRule, Tcl_Obj *pObj)
 {
     switch (pRule->eMedia) {
 		case CSS_MEDIA_ALL: 
-            Tcl_AppendStringsToObj(pObj, "@madia all", NULL);
+            Tcl_AppendStringsToObj(pObj, "@media all", NULL);
             break;
 		case CSS_MEDIA_PRINT: 
-            Tcl_AppendStringsToObj(pObj, "@madia print", NULL);
+            Tcl_AppendStringsToObj(pObj, "@media print", NULL);
             break;
 		case CSS_MEDIA_SCREEN: 
-            Tcl_AppendStringsToObj(pObj, "@madia screen", NULL);
+            Tcl_AppendStringsToObj(pObj, "@media screen", NULL);
             break;
 	}
 }
@@ -4191,8 +4191,7 @@ HtmlCssStyleConfigDump(
 
     qsort(apRule, nRule, sizeof(CssRule *), ruleQsortCompare);
 
-    pRet = Tcl_NewObj();
-    for (i = 0; i < nRule; i++) {
+    for (i = 0, pRet=Tcl_NewObj(), pMedia=NULL; i < nRule; i++) {
         CssPriority *pPri = apRule[i]->pPriority;
         Tcl_Obj *pList = Tcl_NewObj();
         Tcl_Obj *p = Tcl_NewObj();
@@ -4224,7 +4223,7 @@ HtmlCssStyleConfigDump(
             Tcl_GetString(pPri->pIdTail),
             pPri->important ? " (!important)" : ""
         ));
-		if (CSS_MEDIA_ALL != pRule->eMedia != 0) {
+		if (pRule->eMedia && CSS_MEDIA_ALL != pRule->eMedia) {
 			if (pMedia == NULL) {
 				pMedia = Tcl_NewObj();
 				HtmlCssQueryToString(pRule, pMedia);
@@ -4234,7 +4233,7 @@ HtmlCssStyleConfigDump(
 				Tcl_ListObjAppendElement(NULL, pMedia, pList);
 				continue;
 			}
-		} else if (pMedia != NULL) pMedia = NULL;
+		}
         Tcl_ListObjAppendElement(NULL, pRet, pList);
     }
     Tcl_SetObjResult(interp, pRet);

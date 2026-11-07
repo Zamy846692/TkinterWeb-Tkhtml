@@ -766,6 +766,17 @@ tableDrawRow (HtmlNode *pNode, int row, void *pContext)
                     y += box.iTop;
                     break;
             }
+            if (pLayout->pTree->options.pagination) {
+                int paginationY = pLayout->pTree->options.pagination;
+                int top = pLayout->paginationOrigin + y;
+                int bottom = top + pCell->box.height + box.iBottom;
+                int pagebreak = (top + paginationY - 1) / paginationY * paginationY;
+                if (pagebreak > top && pagebreak < bottom) {
+                    int yNew = y - (bottom - pagebreak);
+                    int yTop = pData->aY[pCell->startrow] + box.iTop;
+                    if (yNew >= yTop) y = yNew;
+                }
+            }
             CHECK_INTEGER_PLAUSIBILITY(pCanvas->bottom);
             DRAW_CANVAS(pCanvas, &pCell->box.vc, x+box.iLeft, y, pCell->pNode);
             CHECK_INTEGER_PLAUSIBILITY(pCanvas->bottom);
@@ -856,9 +867,9 @@ tableDrawCells (HtmlNode *pNode, int col, int colspan, int row, int rowspan, voi
         pBox->iContainingW += (pData->aWidth[i] + pData->border_spacing);
     }
 
-    paginationPageYOrigin(y, pLayout);
+    paginationPageYOrigin(y + box.iTop, pLayout);
     HtmlLayoutNodeContent(pData->pLayout, pBox, pNode);
-    paginationPageYOrigin(-y, pLayout);
+    paginationPageYOrigin(-(y + box.iTop), pLayout);
 
     /* Handle the 'height' property on the table-cell node. The 'height'
      * really specifies a minimum height for the row, not the height of the
