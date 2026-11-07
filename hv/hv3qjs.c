@@ -804,6 +804,14 @@ static void delInterpCmd(ClientData cd) {
 		}
 		Tcl_DeleteHashTable(&qjs->objects);
 
+		/* Free any JavaScript object references still held in the list. */
+		while (qjs->pJsObject) {
+			QjsJsObject *pJsObject = qjs->pJsObject;
+			qjs->pJsObject = qjs->pJsObject->pNext;
+			JS_FreeValue(qjs->ctx, pJsObject->object);
+			js_free(qjs->ctx, pJsObject);
+		}
+
 		interpTimeoutCleanup(qjs);
 
 		JSRuntime *rt = JS_GetRuntime(qjs->ctx);
