@@ -83,7 +83,7 @@ static EventType **getEventList(JSValue obj) {
 
 /* Run event handler */
 static uint8_t
-runEvent(JSContext *ctx, JSValue target, JSValue event, JSValue zType, uint8_t isCapture)
+runEvent(JSContext *ctx, JSValueConst target, JSValueConst event, JSValueConst zType, uint8_t isCapture)
 {
     int rc = 1;
     EventType *pET, **apET;
@@ -97,7 +97,7 @@ runEvent(JSContext *ctx, JSValue target, JSValue event, JSValue zType, uint8_t i
         return 0;
     }
     /* Set event.currentTarget = target */
-    JS_SetPropertyStr(ctx, event, "currentTarget", target);
+    JS_SetPropertyStr(ctx, event, "currentTarget", JS_DupValue(ctx, target));
 
     /* Check if stopPropagation() has been called */
     if (getBooleanFlag(ctx, event, STOP_PROPAGATION)) {
@@ -112,7 +112,8 @@ runEvent(JSContext *ctx, JSValue target, JSValue event, JSValue zType, uint8_t i
 		if (pET) {
 			for (pL = pET->pListenerList; rc && pL; pL = pL->pNext) {
 				if (pL->isCapture == isCapture) {
-					JS_Call(ctx, pL->listener, target, 1, &event);
+					JSValue res = JS_Call(ctx, pL->listener, target, 1, &event);
+					JS_FreeValue(ctx, res);
 					setBooleanFlag(ctx, event, CALLED_LISTENER, 1);
 				}
 				if (pET->pListenerList != pL) break;
@@ -159,7 +160,7 @@ static JSValue getParentNode(JSContext *ctx, JSValueConst o)
     if (JS_GetClassID(o) == QjsTclClassId) {
         NodeHack *pNode = ((QjsTclObject*)JS_GetOpaque(o, QjsTclClassId))->nodehandle;
         if (pNode && pNode->pParent && pNode->pParent->pNodeObj){
-            return *pNode->pParent->pNodeObj;
+            return JS_DupValue(ctx, *pNode->pParent->pNodeObj);
         }
         if (pNode && pNode->pParent == NULL && pNode->iNode < 0) {
             return JS_NULL;
@@ -209,16 +210,16 @@ static JSValue getParentNode(JSContext *ctx, JSValueConst o)
 static JSValue dispatchEventFunc(JSContext *ctx, JSValueConst this, int argc, JSValueConst *argv)
 {
     unsigned int nNodesAlloc = 0, nNodes = 0;
-	int8_t isRun = 1;
-    JSValue zType, event, *apNodes = NULL;
+	int8_t isRun = 1, isBubbler;
+    JSValue zType, val, event, *apNodes = NULL;
 
     /* Check the number of function arguments. */
     if (argc != 1) {
         return JS_ThrowTypeError(ctx, "Function requires exactly 1 parameter");
     }
 
-    if (!JS_IsObject(argv[0]) || JS_GetClassID(argv[0])==QjsTclClassId || JS_GetClassID(argv[0])==QjsTclCallClassId)
-		return JS_ThrowTypeError(ctx, "Function parameter must be 'native' object");
+    if (!JS_IsObject(argv[0]))
+		return JS_ThrowTypeError(ctx, "Function parameter must be object");
 
     event = argv[0];
 
@@ -239,19 +240,25 @@ static JSValue dispatchEventFunc(JSContext *ctx, JSValueConst this, int argc, JS
         return JS_ThrowTypeError(ctx, "UNSPECIFIED_EVENT_TYPE_ERR");
     }
 
+    /* Check if the event "bubbles". */
+    val = JS_GetPropertyStr(ctx, event, "bubbles");
+    isBubbler = valueToBoolean(ctx, val, 0);
+	JS_FreeValue(ctx, val);
+
     /* If this is a bubbling event, create a list of the nodes ancestry
      * to deliver it to now. This is because any callbacks that modify
      * the document tree are not supposed to affect the delivery of
-     * this event. */
-	if (valueToBoolean(ctx, JS_GetPropertyStr(ctx, event, "bubbles"), 0)) {
-        JSValue node = this;
+     * this event. getParentNode() returns an owned reference; apNodes
+     * takes ownership of it (no extra Dup). */
+    if (isBubbler) {
+        JSValue node = this;  /* borrowed */
         do {
-            node = getParentNode(ctx, node);
+            node = getParentNode(ctx, node);  /* now owned */
             if (nNodes == nNodesAlloc) {
                 nNodesAlloc = 2 * (1 + nNodesAlloc); // Use an exponential growth algorithm to minimize reallocations
                 apNodes = js_realloc(ctx, apNodes, sizeof(JSValue) * nNodesAlloc);
             }
-            apNodes[nNodes++] = JS_DupValue(ctx, node);
+            apNodes[nNodes++] = node;  /* apNodes takes ownership */
         } while (!JS_IsNull(node));
     }
 
@@ -272,6 +279,7 @@ static JSValue dispatchEventFunc(JSContext *ctx, JSValueConst this, int argc, JS
     }
 
 	JS_FreeValue(ctx, zType);
+	while (nNodes--) JS_FreeValue(ctx, apNodes[nNodes]);
 	if (apNodes && nNodesAlloc) js_free(ctx, apNodes);
 
     /* Set the return value. */
@@ -319,6 +327,7 @@ eventDispatchCmd(ClientData cd, Tcl_Interp *interp, int objc, Tcl_Obj *const obj
     }
 	JS_FreeValue(qjs->ctx, event);
 	JS_FreeValue(qjs->ctx, ret);
+	JS_FreeValue(qjs->ctx, target);
     return rc;
 }
 
